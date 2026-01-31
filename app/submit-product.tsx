@@ -184,7 +184,7 @@ export default function SubmitProductScreen() {
               placeholder="e.g., Water, Glycerin, Niacinamide..."
               value={ingredients}
               onChangeText={setIngredients}
-              multiline
+              multiline={true}
               numberOfLines={6}
               textAlignVertical="top"
             />
