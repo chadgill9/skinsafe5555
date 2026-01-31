@@ -92,3 +92,25 @@ MVP is complete when:
 - **Scanning**: expo-camera
 - **Database**: Supabase (optional for MVP)
 - **Local Storage**: AsyncStorage
+
+## Security Posture (MVP)
+
+**IMPORTANT: Supabase writes are DISABLED by default.**
+
+To protect against insecure public submissions before auth/RLS is finalized:
+- `EXPO_PUBLIC_ENABLE_SUPABASE_WRITES=false` by default
+- Reads (product lookups) remain enabled if Supabase is configured
+- Writes only enabled when explicitly set to `true`
+- App works fully offline without any Supabase configuration
+
+This means:
+- Product submissions are analyzed locally but NOT saved to cloud
+- Scan analytics are NOT sent to cloud
+- Saved products are stored locally only
+
+To enable cloud writes (dev/testing only):
+```bash
+EXPO_PUBLIC_ENABLE_SUPABASE_WRITES=true
+```
+
+See `docs/RISK_REGISTER.md` R13 for details.

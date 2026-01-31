@@ -6,16 +6,30 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
-import { Product, ScanEvent, ConfidenceLevel } from '../types';
+import { Product, ConfidenceLevel } from '../types';
+import { logInfo, logWarn, logError } from './logger';
+
+const TAG = 'Supabase';
 
 // Get env vars from Expo config
 const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl ||
   process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey ||
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+const writesEnabled = (
+  Constants.expoConfig?.extra?.enableSupabaseWrites ||
+  process.env.EXPO_PUBLIC_ENABLE_SUPABASE_WRITES || 'false'
+) === 'true';
 
 // Singleton client instance
 let supabaseClient: SupabaseClient | null = null;
+
+// Error result type for typed error handling
+export interface SupabaseResult<T> {
+  data: T | null;
+  error: string | null;
+  offline: boolean;
+}
 
 /**
  * Get or create the Supabase client
@@ -23,7 +37,7 @@ let supabaseClient: SupabaseClient | null = null;
  */
 export function getSupabaseClient(): SupabaseClient | null {
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('[Supabase] Missing URL or anon key. Running in offline mode.');
+    logWarn(TAG, 'Missing URL or anon key. Running in offline mode.');
     return null;
   }
 
@@ -33,6 +47,7 @@ export function getSupabaseClient(): SupabaseClient | null {
         persistSession: false, // No auth for MVP
       },
     });
+    logInfo(TAG, 'Client initialized', { writesEnabled });
   }
 
   return supabaseClient;
@@ -46,16 +61,25 @@ export function isSupabaseConfigured(): boolean {
 }
 
 /**
- * Fetch a product by UPC code
- * Returns null if not found or if Supabase is not configured
+ * Check if Supabase writes are enabled
  */
-export async function getProductByUPC(upc: string): Promise<Product | null> {
+export function areWritesEnabled(): boolean {
+  return writesEnabled;
+}
+
+/**
+ * Fetch a product by UPC code
+ * Returns typed result with error handling
+ */
+export async function getProductByUPC(upc: string): Promise<SupabaseResult<Product>> {
   const client = getSupabaseClient();
   if (!client) {
-    return null;
+    return { data: null, error: null, offline: true };
   }
 
   try {
+    logInfo(TAG, 'Looking up product', { upc });
+
     const { data, error } = await client
       .from('products')
       .select('*')
@@ -64,32 +88,44 @@ export async function getProductByUPC(upc: string): Promise<Product | null> {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // No rows returned - product not found
-        return null;
+        // No rows returned - product not found (not an error)
+        logInfo(TAG, 'Product not found', { upc });
+        return { data: null, error: null, offline: false };
       }
-      console.error('[Supabase] Error fetching product:', error.message);
-      return null;
+      logError(TAG, 'Error fetching product', { upc, error: error.message });
+      return { data: null, error: error.message, offline: false };
     }
 
-    return data as Product;
+    logInfo(TAG, 'Product found', { upc, name: data.name });
+    return { data: data as Product, error: null, offline: false };
   } catch (err) {
-    console.error('[Supabase] Exception fetching product:', err);
-    return null;
+    const message = err instanceof Error ? err.message : 'Network error';
+    logError(TAG, 'Exception fetching product', { upc, error: message });
+    return { data: null, error: message, offline: true };
   }
 }
 
 /**
  * Add a new product to the database
- * Returns the created product or null on failure
+ * NO-OPS if writes are disabled (returns null with no error)
  */
-export async function addProduct(product: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product | null> {
+export async function addProduct(
+  product: Omit<Product, 'id' | 'created_at' | 'updated_at'>
+): Promise<SupabaseResult<Product>> {
+  // Check if writes are enabled
+  if (!writesEnabled) {
+    logWarn(TAG, 'Writes disabled. Product not saved to cloud.', { upc: product.upc });
+    return { data: null, error: null, offline: false };
+  }
+
   const client = getSupabaseClient();
   if (!client) {
-    console.warn('[Supabase] Cannot add product - not configured');
-    return null;
+    return { data: null, error: null, offline: true };
   }
 
   try {
+    logInfo(TAG, 'Adding product', { upc: product.upc, name: product.name });
+
     const { data, error } = await client
       .from('products')
       .insert({
@@ -102,20 +138,22 @@ export async function addProduct(product: Omit<Product, 'id' | 'created_at' | 'u
       .single();
 
     if (error) {
-      console.error('[Supabase] Error adding product:', error.message);
-      return null;
+      logError(TAG, 'Error adding product', { upc: product.upc, error: error.message });
+      return { data: null, error: error.message, offline: false };
     }
 
-    return data as Product;
+    logInfo(TAG, 'Product added successfully', { upc: product.upc });
+    return { data: data as Product, error: null, offline: false };
   } catch (err) {
-    console.error('[Supabase] Exception adding product:', err);
-    return null;
+    const message = err instanceof Error ? err.message : 'Network error';
+    logError(TAG, 'Exception adding product', { upc: product.upc, error: message });
+    return { data: null, error: message, offline: true };
   }
 }
 
 /**
  * Log a scan event for analytics
- * Returns true on success, false on failure
+ * NO-OPS if writes are disabled
  */
 export async function logScanEvent(
   upc: string,
@@ -123,11 +161,16 @@ export async function logScanEvent(
   fitScore: number,
   confidence: ConfidenceLevel,
   flags: unknown[]
-): Promise<boolean> {
+): Promise<SupabaseResult<boolean>> {
+  // Check if writes are enabled
+  if (!writesEnabled) {
+    // Silently skip - this is expected behavior
+    return { data: false, error: null, offline: false };
+  }
+
   const client = getSupabaseClient();
   if (!client) {
-    // Silently skip logging if not configured
-    return false;
+    return { data: false, error: null, offline: true };
   }
 
   try {
@@ -143,30 +186,35 @@ export async function logScanEvent(
       });
 
     if (error) {
-      console.error('[Supabase] Error logging scan:', error.message);
-      return false;
+      logError(TAG, 'Error logging scan', { upc, error: error.message });
+      return { data: false, error: error.message, offline: false };
     }
 
-    return true;
+    return { data: true, error: null, offline: false };
   } catch (err) {
-    console.error('[Supabase] Exception logging scan:', err);
-    return false;
+    const message = err instanceof Error ? err.message : 'Network error';
+    logError(TAG, 'Exception logging scan', { upc, error: message });
+    return { data: false, error: message, offline: true };
   }
 }
 
 /**
  * Health check - test database connectivity
  */
-export async function checkConnection(): Promise<boolean> {
+export async function checkConnection(): Promise<SupabaseResult<boolean>> {
   const client = getSupabaseClient();
   if (!client) {
-    return false;
+    return { data: false, error: null, offline: true };
   }
 
   try {
     const { error } = await client.from('products').select('id').limit(1);
-    return !error;
-  } catch {
-    return false;
+    if (error) {
+      return { data: false, error: error.message, offline: false };
+    }
+    return { data: true, error: null, offline: false };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Network error';
+    return { data: false, error: message, offline: true };
   }
 }

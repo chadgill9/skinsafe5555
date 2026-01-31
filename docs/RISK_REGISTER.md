@@ -14,6 +14,8 @@
 | R10 | Community-submitted products contain incorrect data | MED | MED | No moderation in MVP (accept risk), flag low-confidence entries, post-MVP: review queue | Founder | ACCEPTED |
 | R11 | TypeScript compile errors block deployment | HIGH | LOW | CI/CD with tsc --noEmit, pre-commit hooks | Claude | ACTIVE |
 | R12 | Expo SDK updates break dependencies | MED | MED | Lock dependency versions, test before upgrades, maintain upgrade notes | Claude | MONITORING |
+| R13 | Public database writes enable spam/abuse before auth | HIGH | HIGH | Writes disabled by default (EXPO_PUBLIC_ENABLE_SUPABASE_WRITES=false), must explicitly enable, app works fully offline | Claude | MITIGATED |
+| R14 | Network failures block core functionality | MED | MED | Offline fallback for all operations, local scoring always works, clear user messaging | Claude | MITIGATED |
 
 ---
 

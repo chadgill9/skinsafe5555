@@ -173,6 +173,40 @@ Decisions are numbered and immutable. New decisions are appended. Reversals refe
 
 ---
 
+## D011: Ingredients Stored on Products Table
+
+**Date:** 2025-01-30
+**Status:** Accepted
+**Context:** Need to store raw ingredient text for products.
+**Decision:** Store `ingredients_raw_text` directly on the `products` table.
+**Rationale:**
+- Simpler schema (no joins required)
+- One-to-one relationship (each product has one ingredient list)
+- Faster reads for the primary use case (UPC lookup → score)
+- Easier to maintain and reason about
+- Alternative was separate `product_ingredients` table with FK
+
+**Consequences:** Ingredient text is duplicated if product data is denormalized elsewhere (acceptable for MVP).
+
+---
+
+## D012: Supabase Writes Disabled by Default
+
+**Date:** 2025-01-30
+**Status:** Accepted
+**Context:** MVP has no auth. Public writes to database are risky.
+**Decision:** Add `EXPO_PUBLIC_ENABLE_SUPABASE_WRITES` flag, default to `false`.
+**Rationale:**
+- Prevents accidental insecure public submissions
+- Reads remain enabled (product lookups work)
+- Writes only enabled when explicitly configured
+- Developer must consciously enable writes after understanding implications
+- App still works fully offline
+
+**Consequences:** New deployments must set flag to enable product submissions to cloud.
+
+---
+
 ## Template for New Decisions
 
 ```

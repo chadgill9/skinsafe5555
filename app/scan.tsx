@@ -18,6 +18,9 @@ import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { getProductByUPC } from '../src/lib/supabase';
 import { trackEvent } from '../src/lib/analytics';
+import { logInfo, logWarn, logError } from '../src/lib/logger';
+
+const TAG = 'Scan';
 
 export default function ScanScreen() {
   const router = useRouter();
@@ -26,9 +29,11 @@ export default function ScanScreen() {
   const [manualUpc, setManualUpc] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const [offlineBanner, setOfflineBanner] = useState(false);
 
   useEffect(() => {
     trackEvent('scan_started');
+    logInfo(TAG, 'Scan screen loaded');
   }, []);
 
   const handleBarCodeScanned = async (result: BarcodeScanningResult) => {
@@ -38,26 +43,91 @@ export default function ScanScreen() {
     setIsLoading(true);
 
     const upc = result.data;
+    logInfo(TAG, 'Barcode scanned', { upc });
     await processUpc(upc);
   };
 
   const processUpc = async (upc: string) => {
     try {
       // Try to find product in database
-      const product = await getProductByUPC(upc);
+      const result = await getProductByUPC(upc);
 
-      if (product) {
+      // Check if we're in offline mode
+      if (result.offline) {
+        logWarn(TAG, 'Offline mode - lookup unavailable', { upc });
+        setOfflineBanner(true);
+        // Offer to add product manually since we can't look up
+        Alert.alert(
+          'Online Lookup Unavailable',
+          'You can still add this product manually.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => {
+                setIsScanning(true);
+                setIsLoading(false);
+              },
+            },
+            {
+              text: 'Add Product',
+              onPress: () => {
+                router.push({
+                  pathname: '/submit-product',
+                  params: { upc },
+                });
+              },
+            },
+          ]
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // Check for errors
+      if (result.error) {
+        logError(TAG, 'Lookup error', { upc, error: result.error });
+        Alert.alert(
+          'Lookup Error',
+          'Could not check our database. You can still add this product manually.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => {
+                setIsScanning(true);
+                setIsLoading(false);
+              },
+            },
+            {
+              text: 'Add Product',
+              onPress: () => {
+                router.push({
+                  pathname: '/submit-product',
+                  params: { upc },
+                });
+              },
+            },
+          ]
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      if (result.data) {
+        logInfo(TAG, 'Product found', { upc, name: result.data.name });
         trackEvent('scan_completed', { found: true });
         router.push({
           pathname: '/result',
           params: {
-            upc: product.upc,
-            name: product.name,
-            brand: product.brand,
-            ingredients: product.ingredients_raw_text,
+            upc: result.data.upc,
+            name: result.data.name,
+            brand: result.data.brand,
+            ingredients: result.data.ingredients_raw_text,
           },
         });
       } else {
+        logInfo(TAG, 'Product not found', { upc });
         trackEvent('product_not_found');
         // Product not found - offer to submit
         Alert.alert(
@@ -86,9 +156,31 @@ export default function ScanScreen() {
         setIsLoading(false);
       }
     } catch (error) {
+      logError(TAG, 'Exception in processUpc', { upc, error: String(error) });
       trackEvent('scan_failed');
-      Alert.alert('Error', 'Could not process the barcode. Please try again.');
-      setIsScanning(true);
+      Alert.alert(
+        'Error',
+        'Could not process the barcode. You can still add this product manually.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setIsScanning(true);
+              setIsLoading(false);
+            },
+          },
+          {
+            text: 'Add Product',
+            onPress: () => {
+              router.push({
+                pathname: '/submit-product',
+                params: { upc },
+              });
+            },
+          },
+        ]
+      );
       setIsLoading(false);
     }
   };
@@ -99,6 +191,7 @@ export default function ScanScreen() {
       Alert.alert('Invalid UPC', 'Please enter a valid UPC code.');
       return;
     }
+    logInfo(TAG, 'Manual UPC entered', { upc: trimmed });
     trackEvent('manual_upc_entered');
     setIsLoading(true);
     processUpc(trimmed);
@@ -136,6 +229,13 @@ export default function ScanScreen() {
 
   return (
     <View style={styles.container}>
+      {offlineBanner && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>
+            Online lookup unavailable. You can still add products manually.
+          </Text>
+        </View>
+      )}
       {!showManualEntry ? (
         <>
           <CameraView
@@ -205,6 +305,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  offlineBanner: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+    backgroundColor: '#fef3c7',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    zIndex: 100,
+  },
+  offlineBannerText: {
+    color: '#92400e',
+    fontSize: 13,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   camera: {
     flex: 1,

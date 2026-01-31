@@ -2,6 +2,7 @@
  * Submit Product Screen
  *
  * Allows users to submit product info when not found in database.
+ * Works offline - saves locally and optionally syncs to cloud.
  */
 
 import { useState } from 'react';
@@ -12,13 +13,15 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { addProduct, isSupabaseConfigured } from '../src/lib/supabase';
+import { addProduct, isSupabaseConfigured, areWritesEnabled } from '../src/lib/supabase';
 import { trackEvent } from '../src/lib/analytics';
+import { logInfo, logWarn } from '../src/lib/logger';
+
+const TAG = 'SubmitProduct';
 
 export default function SubmitProductScreen() {
   const router = useRouter();
@@ -28,69 +31,101 @@ export default function SubmitProductScreen() {
   const [brand, setBrand] = useState('');
   const [ingredients, setIngredients] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
 
   const isValid = name.trim() && brand.trim() && ingredients.trim();
 
   const handleSubmit = async () => {
     if (!isValid) {
-      Alert.alert('Missing Information', 'Please fill in all fields.');
+      setStatusMessage('Please fill in all fields.');
       return;
     }
 
     setIsSubmitting(true);
+    setStatusMessage('');
+
+    const productData = {
+      upc: params.upc || '',
+      name: name.trim(),
+      brand: brand.trim(),
+      ingredients: ingredients.trim(),
+    };
 
     try {
+      // Check if Supabase is configured and writes are enabled
       if (!isSupabaseConfigured()) {
-        // Offline mode - proceed directly to results
-        trackEvent('product_submitted', { offline: true });
-        router.replace({
-          pathname: '/result',
-          params: {
-            upc: params.upc || '',
-            name: name.trim(),
-            brand: brand.trim(),
-            ingredients: ingredients.trim(),
-          },
-        });
-        return;
-      }
-
-      const product = await addProduct({
-        upc: params.upc || '',
-        name: name.trim(),
-        brand: brand.trim(),
-        ingredients_raw_text: ingredients.trim(),
-      });
-
-      trackEvent('product_submitted', { offline: false });
-
-      if (product) {
-        router.replace({
-          pathname: '/result',
-          params: {
-            upc: product.upc,
-            name: product.name,
-            brand: product.brand,
-            ingredients: product.ingredients_raw_text,
-          },
-        });
+        logInfo(TAG, 'Supabase not configured - proceeding offline', { upc: productData.upc });
+        trackEvent('product_submitted', { mode: 'offline_no_config' });
+      } else if (!areWritesEnabled()) {
+        logWarn(TAG, 'Supabase writes disabled - proceeding locally', { upc: productData.upc });
+        trackEvent('product_submitted', { mode: 'writes_disabled' });
       } else {
-        // Failed to save to DB but continue anyway
-        router.replace({
-          pathname: '/result',
-          params: {
-            upc: params.upc || '',
-            name: name.trim(),
-            brand: brand.trim(),
-            ingredients: ingredients.trim(),
-          },
+        // Try to save to cloud
+        logInfo(TAG, 'Attempting cloud save', { upc: productData.upc });
+        const result = await addProduct({
+          upc: productData.upc,
+          name: productData.name,
+          brand: productData.brand,
+          ingredients_raw_text: productData.ingredients,
         });
+
+        if (result.data) {
+          logInfo(TAG, 'Product saved to cloud', { upc: productData.upc });
+          trackEvent('product_submitted', { mode: 'cloud' });
+        } else if (result.offline) {
+          logWarn(TAG, 'Offline - cloud save skipped', { upc: productData.upc });
+          trackEvent('product_submitted', { mode: 'offline_network' });
+        } else if (result.error) {
+          logWarn(TAG, 'Cloud save failed - continuing locally', {
+            upc: productData.upc,
+            error: result.error,
+          });
+          trackEvent('product_submitted', { mode: 'cloud_failed' });
+        }
       }
+
+      // Always proceed to result - local scoring works regardless
+      router.replace({
+        pathname: '/result',
+        params: {
+          upc: productData.upc,
+          name: productData.name,
+          brand: productData.brand,
+          ingredients: productData.ingredients,
+        },
+      });
     } catch (error) {
-      Alert.alert('Error', 'Could not submit product. Please try again.');
-      setIsSubmitting(false);
+      // Even on exception, proceed to result - local scoring still works
+      logWarn(TAG, 'Exception during submit - proceeding locally', {
+        upc: productData.upc,
+        error: String(error),
+      });
+      trackEvent('product_submitted', { mode: 'exception_fallback' });
+
+      router.replace({
+        pathname: '/result',
+        params: {
+          upc: productData.upc,
+          name: productData.name,
+          brand: productData.brand,
+          ingredients: productData.ingredients,
+        },
+      });
     }
   };
+
+  // Determine info message based on configuration
+  const getInfoMessage = () => {
+    if (!isSupabaseConfigured()) {
+      return 'Product will be analyzed locally.';
+    }
+    if (!areWritesEnabled()) {
+      return 'Product will be analyzed locally. Cloud sync is disabled.';
+    }
+    return null;
+  };
+
+  const infoMessage = getInfoMessage();
 
   return (
     <KeyboardAvoidingView
@@ -101,9 +136,15 @@ export default function SubmitProductScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Add Product</Text>
           <Text style={styles.subtitle}>
-            Help build our database by adding this product's information.
+            Enter the product information to analyze its ingredients.
           </Text>
         </View>
+
+        {infoMessage && (
+          <View style={styles.infoBanner}>
+            <Text style={styles.infoBannerText}>{infoMessage}</Text>
+          </View>
+        )}
 
         <View style={styles.upcBadge}>
           <Text style={styles.upcLabel}>UPC</Text>
@@ -150,6 +191,12 @@ export default function SubmitProductScreen() {
           </View>
         </View>
 
+        {statusMessage ? (
+          <View style={styles.statusBanner}>
+            <Text style={styles.statusText}>{statusMessage}</Text>
+          </View>
+        ) : null}
+
         <TouchableOpacity
           style={[
             styles.submitButton,
@@ -159,14 +206,14 @@ export default function SubmitProductScreen() {
           disabled={!isValid || isSubmitting}
         >
           <Text style={styles.submitButtonText}>
-            {isSubmitting ? 'Submitting...' : 'Submit & Analyze'}
+            {isSubmitting ? 'Analyzing...' : 'Analyze Ingredients'}
           </Text>
         </TouchableOpacity>
 
         <View style={styles.disclaimer}>
           <Text style={styles.disclaimerText}>
-            By submitting, you confirm this information is accurate to the best
-            of your knowledge. Product data is shared to help other users.
+            This analysis is for informational purposes only. Results are based
+            on your personal preferences, not medical recommendations.
           </Text>
         </View>
       </ScrollView>
@@ -196,6 +243,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#666',
     lineHeight: 22,
+  },
+  infoBanner: {
+    backgroundColor: '#dbeafe',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  infoBannerText: {
+    color: '#1e40af',
+    fontSize: 13,
+    textAlign: 'center',
   },
   upcBadge: {
     flexDirection: 'row',
@@ -244,6 +303,18 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 120,
     paddingTop: 12,
+  },
+  statusBanner: {
+    backgroundColor: '#fef3c7',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  statusText: {
+    color: '#92400e',
+    fontSize: 13,
+    textAlign: 'center',
   },
   submitButton: {
     backgroundColor: '#2563eb',
