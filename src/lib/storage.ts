@@ -6,6 +6,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserPreferences, SavedScan, DEFAULT_PREFERENCES } from '../types';
+import { toBool } from './boolean';
 
 const KEYS = {
   PREFERENCES: '@skinsafe_preferences',
@@ -26,13 +27,33 @@ export async function savePreferences(preferences: UserPreferences): Promise<voi
 }
 
 /**
+ * Sanitize preferences to ensure all boolean fields are actual booleans.
+ * This prevents native component crashes from string "true"/"false" values.
+ */
+function sanitizePreferences(raw: unknown): UserPreferences {
+  if (!raw || typeof raw !== 'object') {
+    return DEFAULT_PREFERENCES;
+  }
+  const obj = raw as Record<string, unknown>;
+  return {
+    avoidFragrance: toBool(obj.avoidFragrance, DEFAULT_PREFERENCES.avoidFragrance),
+    avoidParabens: toBool(obj.avoidParabens, DEFAULT_PREFERENCES.avoidParabens),
+    avoidSulfates: toBool(obj.avoidSulfates, DEFAULT_PREFERENCES.avoidSulfates),
+    avoidAlcohol: toBool(obj.avoidAlcohol, DEFAULT_PREFERENCES.avoidAlcohol),
+    avoidEssentialOils: toBool(obj.avoidEssentialOils, DEFAULT_PREFERENCES.avoidEssentialOils),
+    customAvoid: Array.isArray(obj.customAvoid) ? obj.customAvoid : DEFAULT_PREFERENCES.customAvoid,
+  };
+}
+
+/**
  * Load user preferences
  */
 export async function loadPreferences(): Promise<UserPreferences> {
   try {
     const json = await AsyncStorage.getItem(KEYS.PREFERENCES);
     if (json) {
-      return JSON.parse(json) as UserPreferences;
+      const parsed = JSON.parse(json);
+      return sanitizePreferences(parsed);
     }
     return DEFAULT_PREFERENCES;
   } catch (error) {
@@ -116,7 +137,7 @@ export async function setOnboardingComplete(complete: boolean): Promise<void> {
 export async function isOnboardingComplete(): Promise<boolean> {
   try {
     const value = await AsyncStorage.getItem(KEYS.ONBOARDING_COMPLETE);
-    return value === 'true';
+    return toBool(value, false);
   } catch (error) {
     console.error('[Storage] Error checking onboarding status:', error);
     return false;

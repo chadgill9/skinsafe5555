@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { UserPreferences, DEFAULT_PREFERENCES } from '../src/types';
 import { savePreferences, loadPreferences, setOnboardingComplete } from '../src/lib/storage';
 import { trackEvent, setUserProperties } from '../src/lib/analytics';
+import { assertBool } from '../src/lib/boolean';
 
 export default function PreferencesScreen() {
   const router = useRouter();
@@ -28,7 +29,17 @@ export default function PreferencesScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    loadPreferences().then(setPreferences);
+    loadPreferences().then((prefs) => {
+      // DEV-only: Assert all preference values are booleans
+      if (__DEV__) {
+        assertBool(prefs.avoidFragrance, 'avoidFragrance');
+        assertBool(prefs.avoidParabens, 'avoidParabens');
+        assertBool(prefs.avoidSulfates, 'avoidSulfates');
+        assertBool(prefs.avoidAlcohol, 'avoidAlcohol');
+        assertBool(prefs.avoidEssentialOils, 'avoidEssentialOils');
+      }
+      setPreferences(prefs);
+    });
   }, []);
 
   const togglePreference = (key: keyof Omit<UserPreferences, 'customAvoid'>) => {
