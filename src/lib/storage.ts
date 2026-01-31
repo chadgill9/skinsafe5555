@@ -27,6 +27,22 @@ export async function savePreferences(preferences: UserPreferences): Promise<voi
 }
 
 /**
+ * Check if any boolean field contains a string "true" or "false" value.
+ * This indicates corrupted data that needs migration.
+ */
+function hasStringBooleans(obj: Record<string, unknown>): boolean {
+  const boolFields = ['avoidFragrance', 'avoidParabens', 'avoidSulfates', 'avoidAlcohol', 'avoidEssentialOils'];
+  for (const field of boolFields) {
+    const val = obj[field];
+    if (typeof val === 'string' && (val === 'true' || val === 'false')) {
+      console.warn(`[Storage] Found string boolean in ${field}: "${val}"`);
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Sanitize preferences to ensure all boolean fields are actual booleans.
  * This prevents native component crashes from string "true"/"false" values.
  */
@@ -46,14 +62,23 @@ function sanitizePreferences(raw: unknown): UserPreferences {
 }
 
 /**
- * Load user preferences
+ * Load user preferences with automatic migration of corrupted data.
+ * If string booleans are found, sanitizes and writes back immediately.
  */
 export async function loadPreferences(): Promise<UserPreferences> {
   try {
     const json = await AsyncStorage.getItem(KEYS.PREFERENCES);
     if (json) {
       const parsed = JSON.parse(json);
-      return sanitizePreferences(parsed);
+      const sanitized = sanitizePreferences(parsed);
+
+      // Migration: if data was corrupted, write back the sanitized version
+      if (typeof parsed === 'object' && parsed !== null && hasStringBooleans(parsed as Record<string, unknown>)) {
+        console.warn('[Storage] Migrating corrupted preferences - writing sanitized data');
+        await AsyncStorage.setItem(KEYS.PREFERENCES, JSON.stringify(sanitized));
+      }
+
+      return sanitized;
     }
     return DEFAULT_PREFERENCES;
   } catch (error) {
@@ -141,6 +166,19 @@ export async function isOnboardingComplete(): Promise<boolean> {
   } catch (error) {
     console.error('[Storage] Error checking onboarding status:', error);
     return false;
+  }
+}
+
+/**
+ * Reset preferences only (for debugging/unblocking)
+ */
+export async function resetPreferences(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(KEYS.PREFERENCES);
+    console.log('[Storage] Preferences reset to defaults');
+  } catch (error) {
+    console.error('[Storage] Error resetting preferences:', error);
+    throw error;
   }
 }
 

@@ -18,9 +18,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { UserPreferences, DEFAULT_PREFERENCES } from '../src/types';
-import { savePreferences, loadPreferences, setOnboardingComplete } from '../src/lib/storage';
+import { savePreferences, loadPreferences, setOnboardingComplete, resetPreferences } from '../src/lib/storage';
 import { trackEvent, setUserProperties } from '../src/lib/analytics';
-import { assertBool } from '../src/lib/boolean';
+import { assertBool, toBool } from '../src/lib/boolean';
 
 export default function PreferencesScreen() {
   const router = useRouter();
@@ -110,10 +110,10 @@ export default function PreferencesScreen() {
             <Text style={styles.preferenceHint}>Synthetic scents and perfumes</Text>
           </View>
           <Switch
-            value={Boolean(preferences.avoidFragrance)}
+            value={toBool(preferences.avoidFragrance, false)}
             onValueChange={() => togglePreference('avoidFragrance')}
             trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={Boolean(preferences.avoidFragrance) ? '#2563eb' : '#f4f4f5'}
+            thumbColor={toBool(preferences.avoidFragrance, false) ? '#2563eb' : '#f4f4f5'}
           />
         </View>
 
@@ -123,10 +123,10 @@ export default function PreferencesScreen() {
             <Text style={styles.preferenceHint}>Preservatives like methylparaben</Text>
           </View>
           <Switch
-            value={Boolean(preferences.avoidParabens)}
+            value={toBool(preferences.avoidParabens, false)}
             onValueChange={() => togglePreference('avoidParabens')}
             trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={Boolean(preferences.avoidParabens) ? '#2563eb' : '#f4f4f5'}
+            thumbColor={toBool(preferences.avoidParabens, false) ? '#2563eb' : '#f4f4f5'}
           />
         </View>
 
@@ -136,10 +136,10 @@ export default function PreferencesScreen() {
             <Text style={styles.preferenceHint}>SLS, SLES, and similar surfactants</Text>
           </View>
           <Switch
-            value={Boolean(preferences.avoidSulfates)}
+            value={toBool(preferences.avoidSulfates, false)}
             onValueChange={() => togglePreference('avoidSulfates')}
             trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={Boolean(preferences.avoidSulfates) ? '#2563eb' : '#f4f4f5'}
+            thumbColor={toBool(preferences.avoidSulfates, false) ? '#2563eb' : '#f4f4f5'}
           />
         </View>
 
@@ -149,10 +149,10 @@ export default function PreferencesScreen() {
             <Text style={styles.preferenceHint}>Alcohol denat, SD alcohol, etc.</Text>
           </View>
           <Switch
-            value={Boolean(preferences.avoidAlcohol)}
+            value={toBool(preferences.avoidAlcohol, false)}
             onValueChange={() => togglePreference('avoidAlcohol')}
             trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={Boolean(preferences.avoidAlcohol) ? '#2563eb' : '#f4f4f5'}
+            thumbColor={toBool(preferences.avoidAlcohol, false) ? '#2563eb' : '#f4f4f5'}
           />
         </View>
 
@@ -162,10 +162,10 @@ export default function PreferencesScreen() {
             <Text style={styles.preferenceHint}>Tea tree, lavender, citrus oils, etc.</Text>
           </View>
           <Switch
-            value={Boolean(preferences.avoidEssentialOils)}
+            value={toBool(preferences.avoidEssentialOils, false)}
             onValueChange={() => togglePreference('avoidEssentialOils')}
             trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={Boolean(preferences.avoidEssentialOils) ? '#2563eb' : '#f4f4f5'}
+            thumbColor={toBool(preferences.avoidEssentialOils, false) ? '#2563eb' : '#f4f4f5'}
           />
         </View>
       </View>
@@ -226,6 +226,32 @@ export default function PreferencesScreen() {
           preferences only and do not constitute medical advice.
         </Text>
       </View>
+
+      {__DEV__ && (
+        <TouchableOpacity
+          style={styles.devResetButton}
+          onPress={() => {
+            Alert.alert(
+              'Reset Preferences',
+              'This will clear all preferences and reload defaults. Continue?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Reset',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await resetPreferences();
+                    setPreferences(DEFAULT_PREFERENCES);
+                    Alert.alert('Done', 'Preferences reset to defaults.');
+                  },
+                },
+              ]
+            );
+          }}
+        >
+          <Text style={styles.devResetButtonText}>[DEV] Reset Local Preferences</Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }
@@ -348,5 +374,19 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  devResetButton: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#fef2f2',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  devResetButtonText: {
+    fontSize: 12,
+    color: '#dc2626',
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
