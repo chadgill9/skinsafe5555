@@ -1,7 +1,8 @@
 /**
  * Scan Screen
  *
- * Barcode scanner for product UPCs with manual entry fallback.
+ * Manual UPC entry with optional camera scanning.
+ * Camera is disabled by default due to Expo Go compatibility issues.
  */
 
 import { useState, useEffect } from 'react';
@@ -12,10 +13,8 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { getProductByUPC } from '../src/lib/supabase';
 import { trackEvent } from '../src/lib/analytics';
 import { logInfo, logWarn, logError } from '../src/lib/logger';
@@ -24,11 +23,8 @@ const TAG = 'Scan';
 
 export default function ScanScreen() {
   const router = useRouter();
-  const [permission, requestPermission] = useCameraPermissions();
-  const [isScanning, setIsScanning] = useState(true);
   const [manualUpc, setManualUpc] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showManualEntry, setShowManualEntry] = useState(false);
   const [offlineBanner, setOfflineBanner] = useState(false);
 
   useEffect(() => {
@@ -36,27 +32,13 @@ export default function ScanScreen() {
     logInfo(TAG, 'Scan screen loaded');
   }, []);
 
-  const handleBarCodeScanned = async (result: BarcodeScanningResult) => {
-    if (!isScanning || isLoading) return;
-
-    setIsScanning(false);
-    setIsLoading(true);
-
-    const upc = result.data;
-    logInfo(TAG, 'Barcode scanned', { upc });
-    await processUpc(upc);
-  };
-
   const processUpc = async (upc: string) => {
     try {
-      // Try to find product in database
       const result = await getProductByUPC(upc);
 
-      // Check if we're in offline mode
       if (result.offline) {
         logWarn(TAG, 'Offline mode - lookup unavailable', { upc });
         setOfflineBanner(true);
-        // Offer to add product manually since we can't look up
         Alert.alert(
           'Online Lookup Unavailable',
           'You can still add this product manually.',
@@ -64,10 +46,7 @@ export default function ScanScreen() {
             {
               text: 'Cancel',
               style: 'cancel',
-              onPress: () => {
-                setIsScanning(true);
-                setIsLoading(false);
-              },
+              onPress: () => setIsLoading(false),
             },
             {
               text: 'Add Product',
@@ -84,7 +63,6 @@ export default function ScanScreen() {
         return;
       }
 
-      // Check for errors
       if (result.error) {
         logError(TAG, 'Lookup error', { upc, error: result.error });
         Alert.alert(
@@ -94,10 +72,7 @@ export default function ScanScreen() {
             {
               text: 'Cancel',
               style: 'cancel',
-              onPress: () => {
-                setIsScanning(true);
-                setIsLoading(false);
-              },
+              onPress: () => setIsLoading(false),
             },
             {
               text: 'Add Product',
@@ -129,7 +104,6 @@ export default function ScanScreen() {
       } else {
         logInfo(TAG, 'Product not found', { upc });
         trackEvent('product_not_found');
-        // Product not found - offer to submit
         Alert.alert(
           'Product Not Found',
           'This product is not in our database yet. Would you like to add it?',
@@ -137,10 +111,7 @@ export default function ScanScreen() {
             {
               text: 'Cancel',
               style: 'cancel',
-              onPress: () => {
-                setIsScanning(true);
-                setIsLoading(false);
-              },
+              onPress: () => setIsLoading(false),
             },
             {
               text: 'Add Product',
@@ -165,10 +136,7 @@ export default function ScanScreen() {
           {
             text: 'Cancel',
             style: 'cancel',
-            onPress: () => {
-              setIsScanning(true);
-              setIsLoading(false);
-            },
+            onPress: () => setIsLoading(false),
           },
           {
             text: 'Add Product',
@@ -197,36 +165,6 @@ export default function ScanScreen() {
     processUpc(trimmed);
   };
 
-  if (!permission) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#2563eb" />
-      </View>
-    );
-  }
-
-  if (!permission.granted) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.permissionContainer}>
-          <Text style={styles.permissionTitle}>Camera Access Needed</Text>
-          <Text style={styles.permissionText}>
-            To scan product barcodes, please allow camera access.
-          </Text>
-          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-            <Text style={styles.permissionButtonText}>Grant Access</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.manualButton}
-            onPress={() => setShowManualEntry(true)}
-          >
-            <Text style={styles.manualButtonText}>Enter UPC Manually</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       {offlineBanner && (
@@ -236,67 +174,48 @@ export default function ScanScreen() {
           </Text>
         </View>
       )}
-      {!showManualEntry ? (
-        <>
-          <CameraView
-            style={styles.camera}
-            facing="back"
-            barcodeScannerSettings={{
-              barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128'],
-            }}
-            onBarcodeScanned={isScanning ? handleBarCodeScanned : undefined}
-          />
-          <View style={styles.overlay}>
-            <View style={styles.scanFrame} />
-          </View>
-          <View style={styles.instructions}>
-            <Text style={styles.instructionsText}>
-              {isLoading
-                ? 'Looking up product...'
-                : 'Point camera at product barcode'}
-            </Text>
-          </View>
-          <View style={styles.bottomActions}>
-            <TouchableOpacity
-              style={styles.switchButton}
-              onPress={() => setShowManualEntry(true)}
-            >
-              <Text style={styles.switchButtonText}>Enter UPC Manually</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      ) : (
-        <View style={styles.manualContainer}>
-          <Text style={styles.manualTitle}>Enter UPC Code</Text>
-          <Text style={styles.manualHint}>
-            Find the barcode number on the product packaging
+
+      <View style={styles.content}>
+        <Text style={styles.title}>Look Up Product</Text>
+        <Text style={styles.subtitle}>
+          Enter the UPC barcode number from the product packaging
+        </Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="e.g., 012345678901"
+          value={manualUpc}
+          onChangeText={setManualUpc}
+          keyboardType="number-pad"
+          maxLength={14}
+          placeholderTextColor="#94a3b8"
+        />
+
+        <TouchableOpacity
+          style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+          onPress={handleManualSubmit}
+          disabled={isLoading}
+        >
+          <Text style={styles.submitButtonText}>
+            {isLoading ? 'Looking up...' : 'Look Up Product'}
           </Text>
-          <TextInput
-            style={styles.manualInput}
-            placeholder="e.g., 012345678901"
-            value={manualUpc}
-            onChangeText={setManualUpc}
-            keyboardType="number-pad"
-            autoFocus={true}
-            maxLength={14}
-          />
-          <TouchableOpacity
-            style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
-            onPress={handleManualSubmit}
-            disabled={isLoading}
-          >
-            <Text style={styles.submitButtonText}>
-              {isLoading ? 'Looking up...' : 'Look Up Product'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.switchButton}
-            onPress={() => setShowManualEntry(false)}
-          >
-            <Text style={styles.switchButtonText}>Use Camera Instead</Text>
-          </TouchableOpacity>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={() => router.push({ pathname: '/submit-product', params: { upc: '' } })}
+        >
+          <Text style={styles.skipButtonText}>Add Product Without UPC</Text>
+        </TouchableOpacity>
+
+        <View style={styles.infoBox}>
+          <Text style={styles.infoTitle}>Where to find the UPC</Text>
+          <Text style={styles.infoText}>
+            The UPC is the 12-digit number below the barcode on product packaging.
+            It usually starts with 0 and is found on the back or bottom of the product.
+          </Text>
         </View>
-      )}
+      </View>
     </View>
   );
 }
@@ -304,18 +223,12 @@ export default function ScanScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#ffffff',
   },
   offlineBanner: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    right: 20,
     backgroundColor: '#fef3c7',
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
-    zIndex: 100,
   },
   offlineBannerText: {
     color: '#92400e',
@@ -323,133 +236,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
   },
-  camera: {
+  content: {
     flex: 1,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scanFrame: {
-    width: 280,
-    height: 180,
-    borderWidth: 2,
-    borderColor: '#ffffff',
-    borderRadius: 12,
-    backgroundColor: 'transparent',
-  },
-  instructions: {
-    position: 'absolute',
-    bottom: 140,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  instructionsText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  bottomActions: {
-    position: 'absolute',
-    bottom: 60,
-    left: 20,
-    right: 20,
-  },
-  switchButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  switchButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  permissionContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#ffffff',
-  },
-  permissionTitle: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 12,
-  },
-  permissionText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  permissionButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  permissionButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  manualButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-  },
-  manualButtonText: {
-    color: '#2563eb',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  manualContainer: {
-    flex: 1,
-    backgroundColor: '#ffffff',
     padding: 24,
     justifyContent: 'center',
   },
-  manualTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1a1a1a',
     textAlign: 'center',
     marginBottom: 8,
   },
-  manualHint: {
-    fontSize: 14,
-    color: '#666',
+  subtitle: {
+    fontSize: 16,
+    color: '#64748b',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
+    lineHeight: 22,
   },
-  manualInput: {
+  input: {
     borderWidth: 2,
     borderColor: '#e2e8f0',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 20,
+    paddingVertical: 16,
+    fontSize: 24,
     textAlign: 'center',
     letterSpacing: 2,
     marginBottom: 16,
+    backgroundColor: '#f8fafc',
   },
   submitButton: {
     backgroundColor: '#2563eb',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   submitButtonDisabled: {
     opacity: 0.6,
@@ -458,5 +281,31 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  skipButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  skipButtonText: {
+    color: '#2563eb',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  infoBox: {
+    marginTop: 32,
+    padding: 16,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+  },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#334155',
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#64748b',
+    lineHeight: 20,
   },
 });
