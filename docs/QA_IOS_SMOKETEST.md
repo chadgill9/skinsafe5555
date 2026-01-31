@@ -41,7 +41,7 @@ Wait for the app to load in the simulator.
 - [ ] "Edit Preferences" / "Set Your Preferences" button is visible
 - [ ] "View Saved Products" button is visible
 
-**Pass criteria:** Welcome screen renders with disclaimer visible.
+**Pass criteria:** Welcome screen renders with disclaimer and all navigation buttons visible.
 
 ---
 
@@ -51,37 +51,46 @@ Wait for the app to load in the simulator.
 - [ ] Toggles respond to taps (on/off state changes)
 - [ ] Custom ingredient input field works
 - [ ] "Save Preferences" button is tappable and saves
+- [ ] Enable at least Fragrance and Parabens for testing
 
-**Pass criteria:** Can toggle preferences and save.
+**Pass criteria:** Can toggle preferences and save successfully.
 
 ---
 
-### Step 3: Scan Screen (Manual UPC Entry)
+### Step 3: Scan Screen Loads (Manual UPC Entry)
 - [ ] From Welcome, tap "Scan Product" → Scan screen loads
+- [ ] Title shows "Look Up Product"
 - [ ] UPC input field is visible with placeholder "e.g., 012345678901"
 - [ ] "Look Up Product" button is visible
-- [ ] "Add Product Without UPC" link is visible
-- [ ] Info box explains where to find UPC
+- [ ] "Add Product Without UPC" link is visible below the button
+- [ ] Info box explains where to find UPC on product packaging
 
-**Pass criteria:** Scan screen loads with manual entry form.
+**Pass criteria:** Scan screen loads with manual UPC entry form and all elements visible.
 
 ---
 
-### Step 4: UPC Lookup Flow
-- [ ] Type: `012345678901` (test UPC)
+### Step 4: Invalid UPC Handling
+- [ ] Leave UPC field empty
 - [ ] Tap "Look Up Product" button
-- [ ] Loading state shows "Looking up..."
+- [ ] Alert appears: "Invalid UPC" with message "Please enter a valid UPC code."
+- [ ] Tap OK to dismiss
+- [ ] App does not crash
+- [ ] Input field remains usable
 
-**Pass criteria:** Manual entry submits and shows loading state.
+**Pass criteria:** Empty UPC shows friendly error alert and does not crash.
 
 ---
 
 ### Step 5: Product Not Found Flow
-- [ ] After lookup, "Product not found" message appears
-- [ ] "Add this product" option is visible
-- [ ] Tap to open Submit Product screen
+- [ ] Type: `012345678901` (test UPC unlikely to exist)
+- [ ] Tap "Look Up Product" button
+- [ ] Loading state shows "Looking up..."
+- [ ] Alert appears: "Product Not Found" with message about adding it
+- [ ] "Add Product" button is visible in alert
+- [ ] Tap "Add Product" → navigates to Submit Product screen
+- [ ] UPC is pre-filled in the form
 
-**Pass criteria:** Not-found flow navigates to submission.
+**Pass criteria:** Unknown UPC shows not-found alert and navigates to product submission.
 
 ---
 
@@ -92,61 +101,67 @@ Wait for the app to load in the simulator.
 - [ ] Tap "Submit & Analyze"
 - [ ] Navigates to Result screen
 
-**Pass criteria:** Form validates and submits.
+**Pass criteria:** Form validates, submits, and navigates to results.
 
 ---
 
 ### Step 7: Result Screen Display
 - [ ] Fit score is displayed (0-100 scale)
 - [ ] Confidence level is shown (HIGH/MED/LOW)
-- [ ] Flagged ingredients are listed (if preferences set)
-- [ ] Flags use preference-based language: "may be a concern based on your preferences"
-- [ ] Disclaimer is visible
-- [ ] "Save" button is visible
+- [ ] Flagged ingredients are listed (Fragrance and Methylparaben should be flagged)
+- [ ] Flags show preference-based language (not medical claims)
+- [ ] Disclaimer is visible at top of results
+- [ ] "Save Product" button is visible
 
-**Pass criteria:** Score, confidence, flags all render correctly.
+**Pass criteria:** Score, confidence, and flags all render correctly with compliant language.
 
 ---
 
 ### Step 8: Save Product
-- [ ] Tap "Save" button
-- [ ] Visual confirmation (button changes or toast appears)
-- [ ] Navigate to Saved screen
-- [ ] Product appears in saved list
+- [ ] Tap "Save Product" button
+- [ ] Button changes to "Saved" (visual confirmation)
+- [ ] Navigate back to Welcome screen
+- [ ] Tap "View Saved Products"
+- [ ] Product appears in saved list with fit score
 
-**Pass criteria:** Product persists to saved list.
+**Pass criteria:** Product persists to saved list and displays correctly.
 
 ---
 
-### Step 9: Saved List Persistence
+### Step 9: Persistence After Restart
 - [ ] Close the app completely (swipe up in app switcher)
 - [ ] Reopen the app
 - [ ] Navigate to Saved screen
 - [ ] Previously saved product is still there
+- [ ] Fit score and product name are correct
 
-**Pass criteria:** AsyncStorage persistence works.
-
----
-
-### Step 10: Offline Mode (Airplane Mode Test)
-- [ ] Enable Airplane Mode on simulator (Device → Airplane Mode, or use Network Link Conditioner)
-- [ ] Try to scan/look up a new UPC
-- [ ] App shows: "Online lookup unavailable" message (not a crash)
-- [ ] Manual entry and local scoring still work
-- [ ] Submit new product → saves locally
-- [ ] App does not crash
-
-**Pass criteria:** App degrades gracefully without network.
+**Pass criteria:** AsyncStorage persistence works across app restarts.
 
 ---
 
-## Permission Prompts to Verify
+### Step 10: Offline Mode Behavior
+- [ ] Enable Airplane Mode on simulator (Device → Airplane Mode)
+- [ ] Navigate to Scan screen
+- [ ] Enter any UPC and tap "Look Up Product"
+- [ ] Alert appears: "Online Lookup Unavailable" (not a crash)
+- [ ] Tap "Add Product" to add manually
+- [ ] Submit new product → saves locally and shows results
+- [ ] Local scoring still works (flags appear based on preferences)
+- [ ] App does not crash at any point
 
-| Permission | When Prompted | Expected Behavior |
-|------------|---------------|-------------------|
-| Network (optional) | Product lookup | App handles offline gracefully with "Online lookup unavailable" message |
+**Pass criteria:** App degrades gracefully without network; local scoring and saving work.
 
-> **Note:** Camera permission was removed in favor of manual UPC entry for Expo Go compatibility.
+---
+
+## Offline Behavior Summary
+
+| Action | Online | Offline |
+|--------|--------|---------|
+| UPC Lookup | Checks Supabase | Shows "Online Lookup Unavailable" alert |
+| Add Product | Saves to Supabase (if enabled) | Saves locally only |
+| Scoring | Works | Works (local engine) |
+| Save to List | Works | Works (AsyncStorage) |
+| View Saved | Works | Works |
 
 ---
 
@@ -176,11 +191,12 @@ For deeper debugging:
 
 | Issue | Cause | Fix |
 |-------|-------|-----|
-| "Missing Supabase URL" warning | Not configured | Expected for offline dev - ignore |
+| "Missing Supabase URL" warning | Supabase not configured | Expected for offline dev - ignore |
 | Slow first load | Metro bundler cold start | Wait for bundle to complete |
 | TypeScript errors on start | Dependencies issue | Run `npm install` again |
 | Product lookup fails | Offline or Supabase not configured | Expected - use "Add Product" flow |
 | Keyboard covers input | Platform difference | KeyboardAvoidingView should handle it |
+| Offline banner appears | No network connectivity | Expected behavior - app still works |
 
 ---
 
@@ -190,8 +206,8 @@ For deeper debugging:
 |------|------|------|-------|
 | Step 1: Welcome screen | ☐ | ☐ | |
 | Step 2: Preferences | ☐ | ☐ | |
-| Step 3: Scan screen | ☐ | ☐ | |
-| Step 4: UPC lookup | ☐ | ☐ | |
+| Step 3: Scan screen loads | ☐ | ☐ | |
+| Step 4: Invalid UPC handling | ☐ | ☐ | |
 | Step 5: Not found flow | ☐ | ☐ | |
 | Step 6: Submit product | ☐ | ☐ | |
 | Step 7: Result display | ☐ | ☐ | |
