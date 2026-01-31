@@ -6,7 +6,7 @@ Check skincare product ingredients against your personal preferences.
 
 ## Core Loop
 
-1. **Scan** - Scan a product barcode or enter UPC manually
+1. **Lookup** - Enter a product UPC code
 2. **Result** - View fit score, flagged ingredients, and confidence level
 3. **Save** - Save products for future reference
 4. **Repeat** - Build your product reference library
@@ -35,8 +35,7 @@ npm run android
 - **Framework:** Expo (React Native)
 - **Language:** TypeScript
 - **Navigation:** expo-router (file-based)
-- **Barcode Scanning:** expo-camera
-- **Database:** Supabase (optional for MVP)
+- **Database:** Supabase (optional - works offline)
 - **Local Storage:** AsyncStorage
 
 ## Project Structure
@@ -46,7 +45,7 @@ npm run android
 │   ├── _layout.tsx         # Root layout
 │   ├── index.tsx           # Welcome/Home
 │   ├── preferences.tsx     # User preferences
-│   ├── scan.tsx            # Barcode scanner
+│   ├── scan.tsx            # UPC lookup
 │   ├── result.tsx          # Scan results
 │   ├── saved.tsx           # Saved products
 │   └── submit-product.tsx  # Add new product

@@ -36,39 +36,43 @@ Wait for the app to load in the simulator.
 
 ### Step 1: Welcome Screen Loads
 - [ ] App opens to Welcome screen
-- [ ] Disclaimer text is visible: "for informational purposes only"
-- [ ] "Get Started" button is tappable
+- [ ] Disclaimer text is visible: "For informational purposes only"
+- [ ] "Scan Product" button is tappable
+- [ ] "Edit Preferences" / "Set Your Preferences" button is visible
+- [ ] "View Saved Products" button is visible
 
 **Pass criteria:** Welcome screen renders with disclaimer visible.
 
 ---
 
 ### Step 2: Preferences Screen
-- [ ] Tap "Get Started" → navigates to Preferences
-- [ ] All toggle switches are visible (Fragrance, Parabens, Sulfates, Silicones, Alcohol)
+- [ ] Tap "Set Your Preferences" → navigates to Preferences
+- [ ] All 5 toggle switches are visible (Fragrance, Parabens, Sulfates, Drying Alcohols, Essential Oils)
 - [ ] Toggles respond to taps (on/off state changes)
-- [ ] "Continue" button is tappable
+- [ ] Custom ingredient input field works
+- [ ] "Save Preferences" button is tappable and saves
 
-**Pass criteria:** Can toggle preferences and proceed.
-
----
-
-### Step 3: Camera Permission Prompt
-- [ ] Tap "Continue" → Scan screen loads
-- [ ] iOS camera permission dialog appears
-- [ ] Tap "Allow" → camera preview shows
-
-**Pass criteria:** Permission prompt appears and camera activates.
+**Pass criteria:** Can toggle preferences and save.
 
 ---
 
-### Step 4: Manual UPC Entry
-- [ ] Tap "Enter UPC manually" link
-- [ ] Text input appears
-- [ ] Type: `012345678901` (or any UPC)
-- [ ] Tap "Look Up" button
+### Step 3: Scan Screen (Manual UPC Entry)
+- [ ] From Welcome, tap "Scan Product" → Scan screen loads
+- [ ] UPC input field is visible with placeholder "e.g., 012345678901"
+- [ ] "Look Up Product" button is visible
+- [ ] "Add Product Without UPC" link is visible
+- [ ] Info box explains where to find UPC
 
-**Pass criteria:** Manual entry modal works.
+**Pass criteria:** Scan screen loads with manual entry form.
+
+---
+
+### Step 4: UPC Lookup Flow
+- [ ] Type: `012345678901` (test UPC)
+- [ ] Tap "Look Up Product" button
+- [ ] Loading state shows "Looking up..."
+
+**Pass criteria:** Manual entry submits and shows loading state.
 
 ---
 
@@ -140,8 +144,9 @@ Wait for the app to load in the simulator.
 
 | Permission | When Prompted | Expected Behavior |
 |------------|---------------|-------------------|
-| Camera | First visit to Scan screen | iOS permission dialog appears |
-| Camera denied | User denies permission | App shows "Camera access required" message with settings link |
+| Network (optional) | Product lookup | App handles offline gracefully with "Online lookup unavailable" message |
+
+> **Note:** Camera permission was removed in favor of manual UPC entry for Expo Go compatibility.
 
 ---
 
@@ -171,10 +176,11 @@ For deeper debugging:
 
 | Issue | Cause | Fix |
 |-------|-------|-----|
-| Camera shows black | Simulator limitation | Test on physical device |
 | "Missing Supabase URL" warning | Not configured | Expected for offline dev - ignore |
 | Slow first load | Metro bundler cold start | Wait for bundle to complete |
 | TypeScript errors on start | Dependencies issue | Run `npm install` again |
+| Product lookup fails | Offline or Supabase not configured | Expected - use "Add Product" flow |
+| Keyboard covers input | Platform difference | KeyboardAvoidingView should handle it |
 
 ---
 
@@ -184,8 +190,8 @@ For deeper debugging:
 |------|------|------|-------|
 | Step 1: Welcome screen | ☐ | ☐ | |
 | Step 2: Preferences | ☐ | ☐ | |
-| Step 3: Camera permission | ☐ | ☐ | |
-| Step 4: Manual UPC entry | ☐ | ☐ | |
+| Step 3: Scan screen | ☐ | ☐ | |
+| Step 4: UPC lookup | ☐ | ☐ | |
 | Step 5: Not found flow | ☐ | ☐ | |
 | Step 6: Submit product | ☐ | ☐ | |
 | Step 7: Result display | ☐ | ☐ | |
