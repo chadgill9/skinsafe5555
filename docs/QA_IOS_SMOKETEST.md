@@ -5,17 +5,17 @@ Manual QA checklist for iOS. Follow these steps exactly to verify the MVP is wor
 ## Prerequisites
 
 ```bash
-# 1. Install dependencies
+# 1) Install dependencies
 npm install
 
-# 2. Verify TypeScript compiles
+# 2) Verify TypeScript compiles
 npx tsc --noEmit
 
-# 3. Run automated tests
+# 3) Run automated tests
 npm run test:scoring
 npm run check:copy
 
-# 4. Start the development server
+# 4) Start the development server
 npm start
 ```
 
@@ -38,7 +38,7 @@ Wait for the app to load in the simulator.
 - [ ] App opens to Welcome screen
 - [ ] Disclaimer text is visible: "For informational purposes only"
 - [ ] "Scan Product" button is tappable
-- [ ] "Edit Preferences" / "Set Your Preferences" button is visible
+- [ ] "Set Your Preferences" (or "Edit Preferences") button is visible
 - [ ] "View Saved Products" button is visible
 
 **Pass criteria:** Welcome screen renders with disclaimer and all navigation buttons visible.
@@ -47,10 +47,10 @@ Wait for the app to load in the simulator.
 
 ### Step 2: Preferences Screen
 - [ ] Tap "Set Your Preferences" → navigates to Preferences
-- [ ] All 5 toggle switches are visible (Fragrance, Parabens, Sulfates, Drying Alcohols, Essential Oils)
+- [ ] All 5 toggles are visible (Fragrance, Parabens, Sulfates, Drying Alcohols, Essential Oils)
 - [ ] Toggles respond to taps (on/off state changes)
 - [ ] Custom ingredient input field works
-- [ ] "Save Preferences" button is tappable and saves
+- [ ] Tap "Save Preferences" and confirm it saves successfully
 - [ ] Enable at least Fragrance and Parabens for testing
 
 **Pass criteria:** Can toggle preferences and save successfully.
@@ -71,7 +71,7 @@ Wait for the app to load in the simulator.
 
 ### Step 4: Invalid UPC Handling
 - [ ] Leave UPC field empty
-- [ ] Tap "Look Up Product" button
+- [ ] Tap "Look Up Product"
 - [ ] Alert appears: "Invalid UPC" with message "Please enter a valid UPC code."
 - [ ] Tap OK to dismiss
 - [ ] App does not crash
@@ -81,16 +81,25 @@ Wait for the app to load in the simulator.
 
 ---
 
-### Step 5: Product Not Found Flow
-- [ ] Type: `012345678901` (test UPC unlikely to exist)
-- [ ] Tap "Look Up Product" button
-- [ ] Loading state shows "Looking up..."
-- [ ] Alert appears: "Product Not Found" with message about adding it
-- [ ] "Add Product" button is visible in alert
-- [ ] Tap "Add Product" → navigates to Submit Product screen
-- [ ] UPC is pre-filled in the form
+### Step 5: Lookup Result Handling (Online vs Offline)
 
-**Pass criteria:** Unknown UPC shows not-found alert and navigates to product submission.
+Use test UPC: `012345678901`
+
+- [ ] Type `012345678901`
+- [ ] Tap "Look Up Product"
+- [ ] Loading state shows (e.g., "Looking up...")
+
+**If online lookup is available (Supabase configured + network):**
+- [ ] Alert appears: "Product Not Found" with message about adding it
+- [ ] "Add Product" button is visible
+- [ ] Tap "Add Product" → navigates to Submit Product screen
+- [ ] UPC is pre-filled
+
+**If online lookup is unavailable (offline or Supabase not configured):**
+- [ ] Alert appears: "Online Lookup Unavailable"
+- [ ] Tap "Add Product" to proceed to manual submission (or equivalent path)
+
+**Pass criteria:** App shows a correct, non-crashing path for both online and offline lookup states.
 
 ---
 
@@ -106,21 +115,21 @@ Wait for the app to load in the simulator.
 ---
 
 ### Step 7: Result Screen Display
-- [ ] Fit score is displayed (0-100 scale)
+- [ ] Fit score is displayed (0–100)
 - [ ] Confidence level is shown (HIGH/MED/LOW)
-- [ ] Flagged ingredients are listed (Fragrance and Methylparaben should be flagged)
-- [ ] Flags show preference-based language (not medical claims)
+- [ ] Flagged ingredients are listed (Fragrance and Methylparaben should be flagged with the prefs above)
+- [ ] Flags use preference-based language (no medical claims)
 - [ ] Disclaimer is visible at top of results
 - [ ] "Save Product" button is visible
 
-**Pass criteria:** Score, confidence, and flags all render correctly with compliant language.
+**Pass criteria:** Score, confidence, and flags render correctly with compliant language.
 
 ---
 
 ### Step 8: Save Product
-- [ ] Tap "Save Product" button
-- [ ] Button changes to "Saved" (visual confirmation)
-- [ ] Navigate back to Welcome screen
+- [ ] Tap "Save Product"
+- [ ] Button changes to "Saved" (or other visual confirmation)
+- [ ] Navigate back to Welcome
 - [ ] Tap "View Saved Products"
 - [ ] Product appears in saved list with fit score
 
@@ -157,7 +166,7 @@ Wait for the app to load in the simulator.
 
 | Action | Online | Offline |
 |--------|--------|---------|
-| UPC Lookup | Checks Supabase | Shows "Online Lookup Unavailable" alert |
+| UPC Lookup | Checks Supabase | Shows "Online Lookup Unavailable" |
 | Add Product | Saves to Supabase (if enabled) | Saves locally only |
 | Scoring | Works | Works (local engine) |
 | Save to List | Works | Works (AsyncStorage) |
@@ -192,11 +201,11 @@ For deeper debugging:
 | Issue | Cause | Fix |
 |-------|-------|-----|
 | "Missing Supabase URL" warning | Supabase not configured | Expected for offline dev - ignore |
-| Slow first load | Metro bundler cold start | Wait for bundle to complete |
+| Slow first load | Metro cold start | Wait for bundle to complete |
 | TypeScript errors on start | Dependencies issue | Run `npm install` again |
 | Product lookup fails | Offline or Supabase not configured | Expected - use "Add Product" flow |
 | Keyboard covers input | Platform difference | KeyboardAvoidingView should handle it |
-| Offline banner appears | No network connectivity | Expected behavior - app still works |
+| Offline banner appears | No network | Expected behavior - app still works |
 
 ---
 
@@ -208,7 +217,7 @@ For deeper debugging:
 | Step 2: Preferences | ☐ | ☐ | |
 | Step 3: Scan screen loads | ☐ | ☐ | |
 | Step 4: Invalid UPC handling | ☐ | ☐ | |
-| Step 5: Not found flow | ☐ | ☐ | |
+| Step 5: Lookup handling | ☐ | ☐ | |
 | Step 6: Submit product | ☐ | ☐ | |
 | Step 7: Result display | ☐ | ☐ | |
 | Step 8: Save product | ☐ | ☐ | |
