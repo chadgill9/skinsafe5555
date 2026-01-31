@@ -277,7 +277,7 @@ export default function ScanScreen() {
             value={manualUpc}
             onChangeText={setManualUpc}
             keyboardType="number-pad"
-            autoFocus
+            autoFocus={true}
             maxLength={14}
           />
           <TouchableOpacity
