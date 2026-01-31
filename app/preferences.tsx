@@ -110,10 +110,10 @@ export default function PreferencesScreen() {
             <Text style={styles.preferenceHint}>Synthetic scents and perfumes</Text>
           </View>
           <Switch
-            value={preferences.avoidFragrance}
+            value={Boolean(preferences.avoidFragrance)}
             onValueChange={() => togglePreference('avoidFragrance')}
             trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={preferences.avoidFragrance ? '#2563eb' : '#f4f4f5'}
+            thumbColor={Boolean(preferences.avoidFragrance) ? '#2563eb' : '#f4f4f5'}
           />
         </View>
 
@@ -123,10 +123,10 @@ export default function PreferencesScreen() {
             <Text style={styles.preferenceHint}>Preservatives like methylparaben</Text>
           </View>
           <Switch
-            value={preferences.avoidParabens}
+            value={Boolean(preferences.avoidParabens)}
             onValueChange={() => togglePreference('avoidParabens')}
             trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={preferences.avoidParabens ? '#2563eb' : '#f4f4f5'}
+            thumbColor={Boolean(preferences.avoidParabens) ? '#2563eb' : '#f4f4f5'}
           />
         </View>
 
@@ -136,10 +136,10 @@ export default function PreferencesScreen() {
             <Text style={styles.preferenceHint}>SLS, SLES, and similar surfactants</Text>
           </View>
           <Switch
-            value={preferences.avoidSulfates}
+            value={Boolean(preferences.avoidSulfates)}
             onValueChange={() => togglePreference('avoidSulfates')}
             trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={preferences.avoidSulfates ? '#2563eb' : '#f4f4f5'}
+            thumbColor={Boolean(preferences.avoidSulfates) ? '#2563eb' : '#f4f4f5'}
           />
         </View>
 
@@ -149,10 +149,10 @@ export default function PreferencesScreen() {
             <Text style={styles.preferenceHint}>Alcohol denat, SD alcohol, etc.</Text>
           </View>
           <Switch
-            value={preferences.avoidAlcohol}
+            value={Boolean(preferences.avoidAlcohol)}
             onValueChange={() => togglePreference('avoidAlcohol')}
             trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={preferences.avoidAlcohol ? '#2563eb' : '#f4f4f5'}
+            thumbColor={Boolean(preferences.avoidAlcohol) ? '#2563eb' : '#f4f4f5'}
           />
         </View>
 
@@ -162,10 +162,10 @@ export default function PreferencesScreen() {
             <Text style={styles.preferenceHint}>Tea tree, lavender, citrus oils, etc.</Text>
           </View>
           <Switch
-            value={preferences.avoidEssentialOils}
+            value={Boolean(preferences.avoidEssentialOils)}
             onValueChange={() => togglePreference('avoidEssentialOils')}
             trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={preferences.avoidEssentialOils ? '#2563eb' : '#f4f4f5'}
+            thumbColor={Boolean(preferences.avoidEssentialOils) ? '#2563eb' : '#f4f4f5'}
           />
         </View>
       </View>
