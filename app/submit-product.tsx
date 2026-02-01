@@ -150,9 +150,6 @@ export default function SubmitProductScreen() {
         {/* Header */}
         <Animated.View entering={FadeInDown.duration(400).delay(100)}>
           <View style={styles.header}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="create-outline" size={32} color={colors.accent} />
-            </View>
             <Text style={styles.title}>Add Product</Text>
             <Text style={styles.subtitle}>
               Enter the product information to analyze its ingredients.
@@ -172,18 +169,17 @@ export default function SubmitProductScreen() {
           </Animated.View>
         )}
 
-        {/* UPC Badge */}
-        <Animated.View entering={FadeInDown.duration(400).delay(200)}>
-          <View style={styles.upcBadge}>
-            <Ionicons name="barcode-outline" size={18} color={colors.textMuted} />
-            <Text style={styles.upcLabel}>UPC</Text>
-            <Text style={styles.upcValue}>{params.upc || 'Not provided'}</Text>
-          </View>
-        </Animated.View>
-
         {/* Form */}
-        <Animated.View entering={FadeInDown.duration(400).delay(300)}>
+        <Animated.View entering={FadeInDown.duration(400).delay(200)}>
           <Card variant="elevated" style={styles.formCard}>
+            {/* UPC Badge inside form */}
+            {params.upc && (
+              <View style={styles.upcBadge}>
+                <Ionicons name="barcode-outline" size={16} color={colors.textMuted} />
+                <Text style={styles.upcLabel}>UPC:</Text>
+                <Text style={styles.upcValue}>{params.upc}</Text>
+              </View>
+            )}
             {/* Product Name */}
             <View style={styles.field}>
               <Text style={styles.label}>Product Name *</Text>
@@ -275,26 +271,14 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
   },
   header: {
-    alignItems: 'center',
     marginBottom: spacing.lg,
-  },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.accentLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
   },
   title: {
     ...typography.title,
-    textAlign: 'center',
     marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.body,
-    textAlign: 'center',
     color: colors.textMuted,
   },
   infoBanner: {
@@ -304,19 +288,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surfaceMuted,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    marginBottom: spacing.md,
+    padding: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    marginBottom: spacing.lg,
+    alignSelf: 'flex-start',
   },
   upcLabel: {
     ...typography.caption,
     fontWeight: '600',
     color: colors.textMuted,
-    marginLeft: spacing.sm,
-    marginRight: spacing.sm,
+    marginLeft: spacing.xs,
+    marginRight: spacing.xs,
   },
   upcValue: {
-    ...typography.body,
+    ...typography.caption,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     color: colors.textSecondary,
   },

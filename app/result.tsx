@@ -134,16 +134,16 @@ export default function ResultScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Product Info */}
+      {/* Product Info Card */}
       <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-        <View style={styles.productHeader}>
+        <Card variant="elevated" style={styles.productCard}>
           <Text style={styles.productName}>{params.name || 'Unknown Product'}</Text>
           <Text style={styles.productBrand}>{params.brand || 'Unknown Brand'}</Text>
           <View style={styles.upcRow}>
             <Ionicons name="barcode-outline" size={14} color={colors.textMuted} />
             <Text style={styles.productUpc}>{params.upc}</Text>
           </View>
-        </View>
+        </Card>
       </Animated.View>
 
       {/* Score Card */}
@@ -155,16 +155,6 @@ export default function ResultScreen() {
             animate={true}
           />
         </Card>
-      </Animated.View>
-
-      {/* Disclaimer */}
-      <Animated.View entering={FadeInDown.duration(400).delay(300)}>
-        <InfoBanner
-          message="This score reflects how well this product matches your preferences. It is not a measure of product quality or suitability for your skin. Consult a healthcare professional for personalized advice."
-          variant="warning"
-          icon="information-circle-outline"
-          style={styles.disclaimer}
-        />
       </Animated.View>
 
       {/* No Preferences Warning */}
@@ -253,10 +243,19 @@ export default function ResultScreen() {
           <Button
             title="Scan Another"
             onPress={() => router.push('/scan')}
-            variant="secondary"
+            variant="ghost"
             icon="scan-outline"
           />
         </View>
+      </Animated.View>
+
+      {/* Disclaimer - at bottom */}
+      <Animated.View entering={FadeInDown.duration(400).delay(700)}>
+        <InfoBanner
+          message="This score reflects how well this product matches your preferences, not product quality. Consult a healthcare professional for personalized advice."
+          variant="muted"
+          style={styles.disclaimer}
+        />
       </Animated.View>
     </ScrollView>
   );
@@ -282,8 +281,8 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textMuted,
   },
-  productHeader: {
-    marginBottom: spacing.lg,
+  productCard: {
+    marginBottom: spacing.md,
   },
   productName: {
     ...typography.title,
@@ -309,7 +308,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   disclaimer: {
-    marginBottom: spacing.md,
+    marginTop: spacing.lg,
   },
   noPrefsCard: {
     marginBottom: spacing.md,

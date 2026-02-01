@@ -79,19 +79,22 @@ export default function WelcomeScreen() {
           </Text>
         </Animated.View>
 
-        {/* Disclaimer */}
-        <Animated.View entering={FadeInDown.duration(500).delay(200)}>
-          <InfoBanner
-            message="For informational purposes only. This app does not provide medical advice, diagnosis, or treatment recommendations. Consult a healthcare professional for skin concerns."
-            variant="muted"
-            style={styles.disclaimer}
-          />
-        </Animated.View>
+        {/* Hint for new users - shown before CTA */}
+        {!hasCompletedOnboarding && (
+          <Animated.View entering={FadeInDown.duration(500).delay(200)}>
+            <InfoBanner
+              message="Tip: Set your preferences first for personalized results"
+              variant="warning"
+              icon="bulb-outline"
+              style={styles.hint}
+            />
+          </Animated.View>
+        )}
 
-        {/* Action Buttons */}
+        {/* Primary CTA - Scan Product */}
         <Animated.View
-          entering={FadeInDown.duration(500).delay(300)}
-          style={styles.actions}
+          entering={FadeInDown.duration(500).delay(250)}
+          style={styles.primaryAction}
         >
           <Button
             title="Scan Product"
@@ -99,9 +102,13 @@ export default function WelcomeScreen() {
             variant="primary"
             icon="scan-outline"
           />
+        </Animated.View>
 
-          <View style={styles.buttonSpacer} />
-
+        {/* Secondary Actions */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(350)}
+          style={styles.secondaryActions}
+        >
           <Button
             title={
               hasCompletedOnboarding
@@ -118,22 +125,21 @@ export default function WelcomeScreen() {
           <Button
             title="View Saved Products"
             onPress={() => router.push('/saved')}
-            variant="secondary"
+            variant="ghost"
             icon="bookmark-outline"
           />
         </Animated.View>
 
-        {/* Hint for new users */}
-        {!hasCompletedOnboarding && (
-          <Animated.View entering={FadeInDown.duration(500).delay(400)}>
-            <InfoBanner
-              message="Tip: Set your preferences first for personalized results"
-              variant="warning"
-              icon="bulb-outline"
-              style={styles.hint}
-            />
-          </Animated.View>
-        )}
+        {/* Spacer to push disclaimer to bottom */}
+        <View style={styles.spacer} />
+
+        {/* Disclaimer - at bottom */}
+        <Animated.View entering={FadeInDown.duration(500).delay(450)}>
+          <InfoBanner
+            message="For informational purposes only. This app does not provide medical advice, diagnosis, or treatment recommendations."
+            variant="muted"
+          />
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
@@ -152,8 +158,8 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
-    justifyContent: 'center',
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
   },
   hero: {
     alignItems: 'center',
@@ -179,16 +185,20 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     maxWidth: 300,
   },
-  disclaimer: {
-    marginBottom: spacing.xl,
+  hint: {
+    marginBottom: spacing.lg,
   },
-  actions: {
+  primaryAction: {
+    marginBottom: spacing.md,
+  },
+  secondaryActions: {
     marginBottom: spacing.lg,
   },
   buttonSpacer: {
     height: spacing.sm,
   },
-  hint: {
-    marginTop: spacing.sm,
+  spacer: {
+    flex: 1,
+    minHeight: spacing.lg,
   },
 });

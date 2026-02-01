@@ -12,6 +12,9 @@ import {
   StyleSheet,
   TextInput,
   Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
@@ -176,19 +179,27 @@ export default function ScanScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {offlineBanner && (
-        <Animated.View entering={FadeIn.duration(300)}>
-          <InfoBanner
-            message="Online lookup unavailable. You can still add products manually."
-            variant="warning"
-            icon="cloud-offline-outline"
-            style={styles.offlineBanner}
-          />
-        </Animated.View>
-      )}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {offlineBanner && (
+          <Animated.View entering={FadeIn.duration(300)}>
+            <InfoBanner
+              message="Online lookup unavailable. You can still add products manually."
+              variant="warning"
+              icon="cloud-offline-outline"
+              style={styles.offlineBanner}
+            />
+          </Animated.View>
+        )}
 
-      <View style={styles.content}>
+        <View style={styles.content}>
         {/* Header */}
         <Animated.View
           entering={FadeInDown.duration(400).delay(100)}
@@ -250,7 +261,8 @@ export default function ScanScreen() {
           </Card>
         </Animated.View>
       </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -259,14 +271,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   offlineBanner: {
     margin: spacing.md,
     marginBottom: 0,
   },
   content: {
-    flex: 1,
     padding: spacing.lg,
-    justifyContent: 'center',
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxxl,
   },
   header: {
     alignItems: 'center',
