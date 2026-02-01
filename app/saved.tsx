@@ -10,14 +10,26 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
+  Pressable,
   Alert,
   RefreshControl,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import Animated, { FadeInRight, FadeIn } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { loadSavedScans, removeScan } from '../src/lib/storage';
 import { trackEvent } from '../src/lib/analytics';
 import { SavedScan } from '../src/types';
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  shadows,
+  Card,
+  EmptyState,
+  getScoreColor,
+} from '../src/ui';
 
 export default function SavedScreen() {
   const router = useRouter();
@@ -63,12 +75,6 @@ export default function SavedScreen() {
     );
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return '#22c55e';
-    if (score >= 50) return '#eab308';
-    return '#ef4444';
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -78,66 +84,89 @@ export default function SavedScreen() {
     });
   };
 
-  const renderItem = ({ item }: { item: SavedScan }) => (
-    <TouchableOpacity
-      style={styles.scanItem}
-      onLongPress={() => handleRemove(item)}
-    >
-      <View style={styles.scanInfo}>
-        <Text style={styles.scanName} numberOfLines={1}>
-          {item.productName}
-        </Text>
-        <Text style={styles.scanBrand}>{item.brand}</Text>
-        <Text style={styles.scanDate}>Saved {formatDate(item.savedAt)}</Text>
-      </View>
-      <View style={styles.scanScore}>
-        <Text style={[styles.scoreValue, { color: getScoreColor(item.fitScore) }]}>
-          {item.fitScore}
-        </Text>
-        <Text style={styles.scoreLabel}>Fit</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item, index }: { item: SavedScan; index: number }) => {
+    const scoreColor = getScoreColor(item.fitScore);
+
+    return (
+      <Animated.View entering={FadeInRight.duration(300).delay(index * 50)}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.productCard,
+            pressed && styles.productCardPressed,
+          ]}
+          onLongPress={() => handleRemove(item)}
+        >
+          <View style={styles.productInfo}>
+            <Text style={styles.productName} numberOfLines={1}>
+              {item.productName}
+            </Text>
+            <Text style={styles.productBrand}>{item.brand}</Text>
+            <View style={styles.dateRow}>
+              <Ionicons name="calendar-outline" size={12} color={colors.textMuted} />
+              <Text style={styles.productDate}>{formatDate(item.savedAt)}</Text>
+            </View>
+          </View>
+
+          <View style={styles.scoreContainer}>
+            <View style={[styles.scoreBadge, { backgroundColor: scoreColor + '15' }]}>
+              <Text style={[styles.scoreValue, { color: scoreColor }]}>
+                {item.fitScore}
+              </Text>
+            </View>
+            <Text style={styles.scoreLabel}>Fit Score</Text>
+          </View>
+        </Pressable>
+      </Animated.View>
+    );
+  };
 
   if (isLoading) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Loading...</Text>
+      <View style={styles.loadingContainer}>
+        <Animated.View entering={FadeIn.duration(300)}>
+          <Ionicons name="bookmark" size={32} color={colors.accent} />
+        </Animated.View>
+        <Text style={styles.loadingText}>Loading saved products...</Text>
+      </View>
+    );
+  }
+
+  if (scans.length === 0) {
+    return (
+      <View style={styles.container}>
+        <EmptyState
+          icon="bookmark-outline"
+          title="No Saved Products"
+          message="Products you save will appear here for easy reference."
+          actionTitle="Scan a Product"
+          onAction={() => router.push('/scan')}
+        />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {scans.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>No Saved Products</Text>
-          <Text style={styles.emptyText}>
-            Products you save will appear here for easy reference.
-          </Text>
-          <TouchableOpacity
-            style={styles.scanButton}
-            onPress={() => router.push('/scan')}
-          >
-            <Text style={styles.scanButtonText}>Scan a Product</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <>
-          <FlatList
-            data={scans}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={styles.list}
-            refreshControl={
-              <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
-            }
+      <FlatList
+        data={scans}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.accent}
           />
-          <View style={styles.hint}>
-            <Text style={styles.hintText}>Long press to remove a product</Text>
-          </View>
-        </>
-      )}
+        }
+      />
+
+      {/* Hint Banner */}
+      <Animated.View entering={FadeIn.duration(400).delay(300)} style={styles.hintBanner}>
+        <Ionicons name="hand-left-outline" size={14} color={colors.textMuted} />
+        <Text style={styles.hintText}>Long press to remove a product</Text>
+      </Animated.View>
     </View>
   );
 }
@@ -145,95 +174,94 @@ export default function SavedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    gap: spacing.md,
+  },
+  loadingText: {
+    ...typography.body,
+    color: colors.textMuted,
   },
   list: {
-    padding: 16,
-    paddingBottom: 60,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxxl + 40,
   },
-  scanItem: {
+  productCard: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadows.md,
   },
-  scanInfo: {
+  productCardPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.99 }],
+  },
+  productInfo: {
     flex: 1,
-    marginRight: 16,
+    marginRight: spacing.md,
   },
-  scanName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 4,
+  productName: {
+    ...typography.bodyBold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
   },
-  scanBrand: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+  productBrand: {
+    ...typography.body,
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
   },
-  scanDate: {
-    fontSize: 12,
-    color: '#94a3b8',
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
-  scanScore: {
+  productDate: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  scoreContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 50,
+  },
+  scoreBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
   scoreValue: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
   },
   scoreLabel: {
-    fontSize: 11,
-    color: '#94a3b8',
+    ...typography.small,
+    color: colors.textMuted,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  scanButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 10,
-  },
-  scanButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  hint: {
+  hintBanner: {
     position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
+    bottom: spacing.lg,
+    left: spacing.lg,
+    right: spacing.lg,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surfaceMuted,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
   },
   hintText: {
-    fontSize: 12,
-    color: '#94a3b8',
+    ...typography.caption,
+    color: colors.textMuted,
   },
 });

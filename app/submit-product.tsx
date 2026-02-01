@@ -11,15 +11,25 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { addProduct, isSupabaseConfigured, areWritesEnabled } from '../src/lib/supabase';
 import { trackEvent } from '../src/lib/analytics';
 import { logInfo, logWarn } from '../src/lib/logger';
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  Card,
+  Button,
+  InfoBanner,
+} from '../src/ui';
 
 const TAG = 'SubmitProduct';
 
@@ -132,90 +142,124 @@ export default function SubmitProductScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Add Product</Text>
-          <Text style={styles.subtitle}>
-            Enter the product information to analyze its ingredients.
-          </Text>
-        </View>
-
-        {infoMessage && (
-          <View style={styles.infoBanner}>
-            <Text style={styles.infoBannerText}>{infoMessage}</Text>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header */}
+        <Animated.View entering={FadeInDown.duration(400).delay(100)}>
+          <View style={styles.header}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="create-outline" size={32} color={colors.accent} />
+            </View>
+            <Text style={styles.title}>Add Product</Text>
+            <Text style={styles.subtitle}>
+              Enter the product information to analyze its ingredients.
+            </Text>
           </View>
+        </Animated.View>
+
+        {/* Info Banner */}
+        {infoMessage && (
+          <Animated.View entering={FadeInDown.duration(400).delay(150)}>
+            <InfoBanner
+              message={infoMessage}
+              variant="info"
+              icon="information-circle-outline"
+              style={styles.infoBanner}
+            />
+          </Animated.View>
         )}
 
-        <View style={styles.upcBadge}>
-          <Text style={styles.upcLabel}>UPC</Text>
-          <Text style={styles.upcValue}>{params.upc || 'Unknown'}</Text>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.field}>
-            <Text style={styles.label}>Product Name *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., Daily Moisturizer SPF 30"
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-            />
+        {/* UPC Badge */}
+        <Animated.View entering={FadeInDown.duration(400).delay(200)}>
+          <View style={styles.upcBadge}>
+            <Ionicons name="barcode-outline" size={18} color={colors.textMuted} />
+            <Text style={styles.upcLabel}>UPC</Text>
+            <Text style={styles.upcValue}>{params.upc || 'Not provided'}</Text>
           </View>
+        </Animated.View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Brand *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., CeraVe"
-              value={brand}
-              onChangeText={setBrand}
-              autoCapitalize="words"
-            />
-          </View>
+        {/* Form */}
+        <Animated.View entering={FadeInDown.duration(400).delay(300)}>
+          <Card variant="elevated" style={styles.formCard}>
+            {/* Product Name */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Product Name *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Daily Moisturizer SPF 30"
+                placeholderTextColor={colors.textMuted}
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+              />
+            </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Ingredients *</Text>
-            <Text style={styles.fieldHint}>
-              Copy the full ingredient list from the product packaging
-            </Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="e.g., Water, Glycerin, Niacinamide..."
-              value={ingredients}
-              onChangeText={setIngredients}
-              multiline={true}
-              numberOfLines={6}
-              textAlignVertical="top"
-            />
-          </View>
-        </View>
+            {/* Brand */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Brand *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., CeraVe"
+                placeholderTextColor={colors.textMuted}
+                value={brand}
+                onChangeText={setBrand}
+                autoCapitalize="words"
+              />
+            </View>
 
+            {/* Ingredients */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Ingredients *</Text>
+              <Text style={styles.fieldHint}>
+                Copy the full ingredient list from the product packaging
+              </Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="e.g., Water, Glycerin, Niacinamide..."
+                placeholderTextColor={colors.textMuted}
+                value={ingredients}
+                onChangeText={setIngredients}
+                multiline={true}
+                numberOfLines={6}
+                textAlignVertical="top"
+              />
+            </View>
+          </Card>
+        </Animated.View>
+
+        {/* Status Message */}
         {statusMessage ? (
-          <View style={styles.statusBanner}>
-            <Text style={styles.statusText}>{statusMessage}</Text>
-          </View>
+          <Animated.View entering={FadeInDown.duration(300)}>
+            <InfoBanner
+              message={statusMessage}
+              variant="warning"
+              style={styles.statusBanner}
+            />
+          </Animated.View>
         ) : null}
 
-        <TouchableOpacity
-          style={[
-            styles.submitButton,
-            (!isValid || isSubmitting) && styles.submitButtonDisabled,
-          ]}
-          onPress={handleSubmit}
-          disabled={!isValid || isSubmitting}
-        >
-          <Text style={styles.submitButtonText}>
-            {isSubmitting ? 'Analyzing...' : 'Analyze Ingredients'}
-          </Text>
-        </TouchableOpacity>
+        {/* Submit Button */}
+        <Animated.View entering={FadeInDown.duration(400).delay(400)}>
+          <Button
+            title={isSubmitting ? 'Analyzing...' : 'Analyze Ingredients'}
+            onPress={handleSubmit}
+            disabled={!isValid || isSubmitting}
+            loading={isSubmitting}
+            icon="sparkles-outline"
+          />
+        </Animated.View>
 
-        <View style={styles.disclaimer}>
-          <Text style={styles.disclaimerText}>
-            This analysis is for informational purposes only. Results are based
-            on your personal preferences, not medical recommendations.
-          </Text>
-        </View>
+        {/* Disclaimer */}
+        <Animated.View entering={FadeInDown.duration(400).delay(500)}>
+          <InfoBanner
+            message="This analysis is for informational purposes only. Results are based on your personal preferences, not medical recommendations."
+            variant="muted"
+            style={styles.disclaimer}
+          />
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -224,122 +268,90 @@ export default function SubmitProductScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
   },
   content: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxxl,
   },
   header: {
-    marginBottom: 20,
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  iconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 8,
+    ...typography.title,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    fontSize: 15,
-    color: '#666',
-    lineHeight: 22,
+    ...typography.body,
+    textAlign: 'center',
+    color: colors.textMuted,
   },
   infoBanner: {
-    backgroundColor: '#dbeafe',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  infoBannerText: {
-    color: '#1e40af',
-    fontSize: 13,
-    textAlign: 'center',
+    marginBottom: spacing.md,
   },
   upcBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f1f5f9',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 24,
+    backgroundColor: colors.surfaceMuted,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    marginBottom: spacing.md,
   },
   upcLabel: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '600',
-    color: '#64748b',
-    marginRight: 8,
+    color: colors.textMuted,
+    marginLeft: spacing.sm,
+    marginRight: spacing.sm,
   },
   upcValue: {
-    fontSize: 14,
+    ...typography.body,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    color: '#334155',
+    color: colors.textSecondary,
   },
-  form: {
-    gap: 20,
-    marginBottom: 24,
+  formCard: {
+    marginBottom: spacing.md,
   },
-  field: {},
+  field: {
+    marginBottom: spacing.md,
+  },
   label: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 6,
+    ...typography.bodyBold,
+    marginBottom: spacing.xs,
   },
   fieldHint: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 6,
+    ...typography.caption,
+    marginBottom: spacing.sm,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     fontSize: 16,
-    backgroundColor: '#fafafa',
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
   },
   textArea: {
     minHeight: 120,
-    paddingTop: 12,
+    textAlignVertical: 'top',
   },
   statusBanner: {
-    backgroundColor: '#fef3c7',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  statusText: {
-    color: '#92400e',
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  submitButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
+    marginBottom: spacing.md,
   },
   disclaimer: {
-    padding: 12,
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
-  },
-  disclaimerText: {
-    fontSize: 12,
-    color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 18,
+    marginTop: spacing.md,
   },
 });

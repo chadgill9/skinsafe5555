@@ -10,14 +10,24 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   TextInput,
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { getProductByUPC } from '../src/lib/supabase';
 import { trackEvent } from '../src/lib/analytics';
 import { logInfo, logWarn, logError } from '../src/lib/logger';
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  Button,
+  Card,
+  InfoBanner,
+} from '../src/ui';
 
 const TAG = 'Scan';
 
@@ -168,53 +178,77 @@ export default function ScanScreen() {
   return (
     <View style={styles.container}>
       {offlineBanner && (
-        <View style={styles.offlineBanner}>
-          <Text style={styles.offlineBannerText}>
-            Online lookup unavailable. You can still add products manually.
-          </Text>
-        </View>
+        <Animated.View entering={FadeIn.duration(300)}>
+          <InfoBanner
+            message="Online lookup unavailable. You can still add products manually."
+            variant="warning"
+            icon="cloud-offline-outline"
+            style={styles.offlineBanner}
+          />
+        </Animated.View>
       )}
 
       <View style={styles.content}>
-        <Text style={styles.title}>Look Up Product</Text>
-        <Text style={styles.subtitle}>
-          Enter the UPC barcode number from the product packaging
-        </Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="e.g., 012345678901"
-          value={manualUpc}
-          onChangeText={setManualUpc}
-          keyboardType="number-pad"
-          maxLength={14}
-          placeholderTextColor="#94a3b8"
-        />
-
-        <TouchableOpacity
-          style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
-          onPress={handleManualSubmit}
-          disabled={isLoading}
+        {/* Header */}
+        <Animated.View
+          entering={FadeInDown.duration(400).delay(100)}
+          style={styles.header}
         >
-          <Text style={styles.submitButtonText}>
-            {isLoading ? 'Looking up...' : 'Look Up Product'}
+          <View style={styles.iconContainer}>
+            <Ionicons name="barcode-outline" size={40} color={colors.accent} />
+          </View>
+          <Text style={styles.title}>Look Up Product</Text>
+          <Text style={styles.subtitle}>
+            Enter the UPC barcode number from the product packaging
           </Text>
-        </TouchableOpacity>
+        </Animated.View>
 
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={() => router.push({ pathname: '/submit-product', params: { upc: '' } })}
-        >
-          <Text style={styles.skipButtonText}>Add Product Without UPC</Text>
-        </TouchableOpacity>
+        {/* UPC Input */}
+        <Animated.View entering={FadeInDown.duration(400).delay(200)}>
+          <TextInput
+            style={styles.input}
+            placeholder="012345678901"
+            value={manualUpc}
+            onChangeText={setManualUpc}
+            keyboardType="number-pad"
+            maxLength={14}
+            placeholderTextColor={colors.textMuted}
+          />
+        </Animated.View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Where to find the UPC</Text>
-          <Text style={styles.infoText}>
-            The UPC is the 12-digit number below the barcode on product packaging.
-            It usually starts with 0 and is found on the back or bottom of the product.
-          </Text>
-        </View>
+        {/* Buttons */}
+        <Animated.View entering={FadeInDown.duration(400).delay(300)}>
+          <Button
+            title={isLoading ? 'Looking up...' : 'Look Up Product'}
+            onPress={handleManualSubmit}
+            disabled={isLoading}
+            loading={isLoading}
+            icon="search-outline"
+          />
+
+          <View style={styles.buttonSpacer} />
+
+          <Button
+            title="Add Product Without UPC"
+            onPress={() => router.push({ pathname: '/submit-product', params: { upc: '' } })}
+            variant="ghost"
+            icon="add-circle-outline"
+          />
+        </Animated.View>
+
+        {/* Info Box */}
+        <Animated.View entering={FadeInDown.duration(400).delay(400)}>
+          <Card variant="flat" style={styles.infoCard}>
+            <View style={styles.infoHeader}>
+              <Ionicons name="help-circle-outline" size={20} color={colors.accent} />
+              <Text style={styles.infoTitle}>Where to find the UPC</Text>
+            </View>
+            <Text style={styles.infoText}>
+              The UPC is the 12-digit number below the barcode on product packaging.
+              It usually starts with 0 and is found on the back or bottom of the product.
+            </Text>
+          </Card>
+        </Animated.View>
       </View>
     </View>
   );
@@ -223,89 +257,73 @@ export default function ScanScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
   },
   offlineBanner: {
-    backgroundColor: '#fef3c7',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  offlineBannerText: {
-    color: '#92400e',
-    fontSize: 13,
-    textAlign: 'center',
-    fontWeight: '500',
+    margin: spacing.md,
+    marginBottom: 0,
   },
   content: {
     flex: 1,
-    padding: 24,
+    padding: spacing.lg,
     justifyContent: 'center',
   },
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1a1a1a',
+    ...typography.title,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#64748b',
+    ...typography.body,
     textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 22,
+    color: colors.textMuted,
+    maxWidth: 280,
   },
   input: {
     borderWidth: 2,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    fontSize: 24,
-    textAlign: 'center',
-    letterSpacing: 2,
-    marginBottom: 16,
-    backgroundColor: '#f8fafc',
-  },
-  submitButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    fontSize: 28,
     fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 3,
+    marginBottom: spacing.md,
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
   },
-  skipButton: {
-    paddingVertical: 12,
+  buttonSpacer: {
+    height: spacing.sm,
+  },
+  infoCard: {
+    marginTop: spacing.xl,
+  },
+  infoHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  skipButtonText: {
-    color: '#2563eb',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  infoBox: {
-    marginTop: 32,
-    padding: 16,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 12,
+    marginBottom: spacing.sm,
   },
   infoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 8,
+    ...typography.bodyBold,
+    marginLeft: spacing.sm,
+    color: colors.textPrimary,
   },
   infoText: {
-    fontSize: 14,
-    color: '#64748b',
-    lineHeight: 20,
+    ...typography.body,
+    color: colors.textMuted,
   },
 });

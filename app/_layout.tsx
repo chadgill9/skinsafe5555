@@ -6,7 +6,9 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { trackEvent } from '../src/lib/analytics';
+import { colors, typography } from '../src/ui';
 
 export default function RootLayout() {
   useEffect(() => {
@@ -22,15 +24,25 @@ export default function RootLayout() {
           gestureEnabled: true,
           headerBackVisible: true,
           headerStyle: {
-            backgroundColor: '#ffffff',
+            backgroundColor: colors.surface,
           },
-          headerTintColor: '#1a1a1a',
+          headerTintColor: colors.accent,
           headerTitleStyle: {
             fontWeight: '600',
+            fontSize: 17,
+            color: colors.textPrimary,
+            ...Platform.select({
+              ios: {
+                letterSpacing: -0.3,
+              },
+              default: {},
+            }),
           },
+          headerShadowVisible: false,
           contentStyle: {
-            backgroundColor: '#f8f9fa',
+            backgroundColor: colors.background,
           },
+          animation: 'slide_from_right',
         }}
       >
         <Stack.Screen
@@ -47,6 +59,7 @@ export default function RootLayout() {
             presentation: 'modal',
             headerShown: true,
             gestureEnabled: true,
+            animation: 'slide_from_bottom',
           }}
         />
         <Stack.Screen
@@ -77,6 +90,7 @@ export default function RootLayout() {
             presentation: 'modal',
             headerShown: true,
             gestureEnabled: true,
+            animation: 'slide_from_bottom',
           }}
         />
       </Stack>

@@ -10,17 +10,29 @@ import {
   View,
   Text,
   StyleSheet,
-  Switch,
   ScrollView,
-  TouchableOpacity,
   TextInput,
   Alert,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { UserPreferences, DEFAULT_PREFERENCES } from '../src/types';
 import { savePreferences, loadPreferences, setOnboardingComplete, resetPreferences } from '../src/lib/storage';
 import { trackEvent, setUserProperties } from '../src/lib/analytics';
 import { assertBool, toBool } from '../src/lib/boolean';
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  Card,
+  Button,
+  Chip,
+  ToggleRow,
+  InfoBanner,
+} from '../src/ui';
 
 export default function PreferencesScreen() {
   const router = useRouter();
@@ -96,140 +108,132 @@ export default function PreferencesScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Common Preferences</Text>
-        <Text style={styles.sectionDescription}>
-          Select ingredients you prefer to avoid. Products containing these
-          will be flagged in your results.
-        </Text>
-
-        <View style={styles.preferenceRow}>
-          <View style={styles.preferenceInfo}>
-            <Text style={styles.preferenceLabel}>Fragrance / Parfum</Text>
-            <Text style={styles.preferenceHint}>Synthetic scents and perfumes</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Common Preferences Section */}
+      <Animated.View entering={FadeInDown.duration(400).delay(100)}>
+        <Card variant="elevated" style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="shield-checkmark-outline" size={24} color={colors.accent} />
+            <Text style={styles.sectionTitle}>Common Preferences</Text>
           </View>
-          <Switch
-            value={toBool(preferences.avoidFragrance, false)}
-            onValueChange={() => togglePreference('avoidFragrance')}
-            trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={toBool(preferences.avoidFragrance, false) ? '#2563eb' : '#f4f4f5'}
-          />
-        </View>
+          <Text style={styles.sectionDescription}>
+            Select ingredients you prefer to avoid. Products containing these
+            will be flagged in your results.
+          </Text>
 
-        <View style={styles.preferenceRow}>
-          <View style={styles.preferenceInfo}>
-            <Text style={styles.preferenceLabel}>Parabens</Text>
-            <Text style={styles.preferenceHint}>Preservatives like methylparaben</Text>
+          <View style={styles.toggleList}>
+            <ToggleRow
+              label="Fragrance / Parfum"
+              hint="Synthetic scents and perfumes"
+              value={toBool(preferences.avoidFragrance, false)}
+              onValueChange={() => togglePreference('avoidFragrance')}
+              delay={0}
+            />
+            <ToggleRow
+              label="Parabens"
+              hint="Preservatives like methylparaben"
+              value={toBool(preferences.avoidParabens, false)}
+              onValueChange={() => togglePreference('avoidParabens')}
+              delay={50}
+            />
+            <ToggleRow
+              label="Sulfates"
+              hint="SLS, SLES, and similar surfactants"
+              value={toBool(preferences.avoidSulfates, false)}
+              onValueChange={() => togglePreference('avoidSulfates')}
+              delay={100}
+            />
+            <ToggleRow
+              label="Drying Alcohols"
+              hint="Alcohol denat, SD alcohol, etc."
+              value={toBool(preferences.avoidAlcohol, false)}
+              onValueChange={() => togglePreference('avoidAlcohol')}
+              delay={150}
+            />
+            <ToggleRow
+              label="Essential Oils"
+              hint="Tea tree, lavender, citrus oils, etc."
+              value={toBool(preferences.avoidEssentialOils, false)}
+              onValueChange={() => togglePreference('avoidEssentialOils')}
+              delay={200}
+            />
           </View>
-          <Switch
-            value={toBool(preferences.avoidParabens, false)}
-            onValueChange={() => togglePreference('avoidParabens')}
-            trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={toBool(preferences.avoidParabens, false) ? '#2563eb' : '#f4f4f5'}
-          />
-        </View>
+        </Card>
+      </Animated.View>
 
-        <View style={styles.preferenceRow}>
-          <View style={styles.preferenceInfo}>
-            <Text style={styles.preferenceLabel}>Sulfates</Text>
-            <Text style={styles.preferenceHint}>SLS, SLES, and similar surfactants</Text>
+      {/* Custom Ingredients Section */}
+      <Animated.View entering={FadeInDown.duration(400).delay(200)}>
+        <Card variant="elevated" style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="add-circle-outline" size={24} color={colors.accent} />
+            <Text style={styles.sectionTitle}>Custom Ingredients</Text>
           </View>
-          <Switch
-            value={toBool(preferences.avoidSulfates, false)}
-            onValueChange={() => togglePreference('avoidSulfates')}
-            trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={toBool(preferences.avoidSulfates, false) ? '#2563eb' : '#f4f4f5'}
-          />
-        </View>
+          <Text style={styles.sectionDescription}>
+            Add specific ingredients you want to flag.
+          </Text>
 
-        <View style={styles.preferenceRow}>
-          <View style={styles.preferenceInfo}>
-            <Text style={styles.preferenceLabel}>Drying Alcohols</Text>
-            <Text style={styles.preferenceHint}>Alcohol denat, SD alcohol, etc.</Text>
+          <View style={styles.customInputRow}>
+            <TextInput
+              style={styles.customInput}
+              placeholder="e.g., coconut oil"
+              placeholderTextColor={colors.textMuted}
+              value={customInput}
+              onChangeText={setCustomInput}
+              onSubmitEditing={addCustomIngredient}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Pressable
+              style={styles.addButton}
+              onPress={addCustomIngredient}
+            >
+              <Ionicons name="add" size={24} color={colors.textInverse} />
+            </Pressable>
           </View>
-          <Switch
-            value={toBool(preferences.avoidAlcohol, false)}
-            onValueChange={() => togglePreference('avoidAlcohol')}
-            trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={toBool(preferences.avoidAlcohol, false) ? '#2563eb' : '#f4f4f5'}
-          />
-        </View>
 
-        <View style={styles.preferenceRow}>
-          <View style={styles.preferenceInfo}>
-            <Text style={styles.preferenceLabel}>Essential Oils</Text>
-            <Text style={styles.preferenceHint}>Tea tree, lavender, citrus oils, etc.</Text>
-          </View>
-          <Switch
-            value={toBool(preferences.avoidEssentialOils, false)}
-            onValueChange={() => togglePreference('avoidEssentialOils')}
-            trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-            thumbColor={toBool(preferences.avoidEssentialOils, false) ? '#2563eb' : '#f4f4f5'}
-          />
-        </View>
-      </View>
+          {preferences.customAvoid.length > 0 && (
+            <View style={styles.chipContainer}>
+              {preferences.customAvoid.map((ingredient) => (
+                <Chip
+                  key={ingredient}
+                  label={ingredient}
+                  onRemove={() => removeCustomIngredient(ingredient)}
+                  variant="accent"
+                />
+              ))}
+            </View>
+          )}
+        </Card>
+      </Animated.View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Custom Ingredients</Text>
-        <Text style={styles.sectionDescription}>
-          Add specific ingredients you want to flag.
-        </Text>
+      {/* Save Button */}
+      <Animated.View entering={FadeInDown.duration(400).delay(300)}>
+        <Button
+          title={isSaving ? 'Saving...' : 'Save Preferences'}
+          onPress={handleSave}
+          disabled={isSaving}
+          loading={isSaving}
+          icon="checkmark-circle-outline"
+        />
+      </Animated.View>
 
-        <View style={styles.customInputRow}>
-          <TextInput
-            style={styles.customInput}
-            placeholder="e.g., coconut oil"
-            value={customInput}
-            onChangeText={setCustomInput}
-            onSubmitEditing={addCustomIngredient}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={addCustomIngredient}
-          >
-            <Text style={styles.addButtonText}>Add</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Disclaimer */}
+      <Animated.View entering={FadeInDown.duration(400).delay(400)}>
+        <InfoBanner
+          message="Preferences are stored locally on your device. These are personal preferences only and do not constitute medical advice."
+          variant="muted"
+          style={styles.disclaimer}
+        />
+      </Animated.View>
 
-        {preferences.customAvoid.length > 0 && (
-          <View style={styles.customList}>
-            {preferences.customAvoid.map((ingredient) => (
-              <TouchableOpacity
-                key={ingredient}
-                style={styles.customChip}
-                onPress={() => removeCustomIngredient(ingredient)}
-              >
-                <Text style={styles.customChipText}>{ingredient}</Text>
-                <Text style={styles.customChipRemove}>×</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </View>
-
-      <TouchableOpacity
-        style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
-        onPress={handleSave}
-        disabled={isSaving}
-      >
-        <Text style={styles.saveButtonText}>
-          {isSaving ? 'Saving...' : 'Save Preferences'}
-        </Text>
-      </TouchableOpacity>
-
-      <View style={styles.disclaimer}>
-        <Text style={styles.disclaimerText}>
-          Preferences are stored locally on your device. These are personal
-          preferences only and do not constitute medical advice.
-        </Text>
-      </View>
-
+      {/* DEV Reset Button */}
       {__DEV__ && (
-        <TouchableOpacity
-          style={styles.devResetButton}
+        <Button
+          title="[DEV] Reset Local Preferences"
           onPress={() => {
             Alert.alert(
               'Reset Preferences',
@@ -248,9 +252,9 @@ export default function PreferencesScreen() {
               ]
             );
           }}
-        >
-          <Text style={styles.devResetButtonText}>[DEV] Reset Local Preferences</Text>
-        </TouchableOpacity>
+          variant="danger"
+          style={styles.devButton}
+        />
       )}
     </ScrollView>
   );
@@ -259,134 +263,65 @@ export default function PreferencesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
   },
   content: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxxl,
   },
   section: {
-    marginBottom: 32,
+    marginBottom: spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 8,
+    ...typography.sectionTitle,
+    marginLeft: spacing.sm,
   },
   sectionDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-    lineHeight: 20,
+    ...typography.body,
+    color: colors.textMuted,
+    marginBottom: spacing.md,
   },
-  preferenceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  preferenceInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
-  preferenceLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1a1a1a',
-  },
-  preferenceHint: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 2,
+  toggleList: {
+    marginTop: spacing.sm,
   },
   customInputRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   customInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    height: 48,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
     fontSize: 16,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
   },
   addButton: {
-    backgroundColor: '#2563eb',
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  addButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-  customList: {
+  chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-  },
-  customChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f1f5f9',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    gap: 6,
-  },
-  customChipText: {
-    fontSize: 14,
-    color: '#334155',
-  },
-  customChipRemove: {
-    fontSize: 18,
-    color: '#94a3b8',
-    fontWeight: '600',
-  },
-  saveButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
   disclaimer: {
-    padding: 12,
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
+    marginTop: spacing.md,
   },
-  disclaimerText: {
-    fontSize: 12,
-    color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  devResetButton: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#fef2f2',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#fecaca',
-  },
-  devResetButtonText: {
-    fontSize: 12,
-    color: '#dc2626',
-    textAlign: 'center',
-    fontWeight: '500',
+  devButton: {
+    marginTop: spacing.md,
   },
 });

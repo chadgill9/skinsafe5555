@@ -7,16 +7,21 @@
  */
 
 import { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { loadPreferences, isOnboardingComplete } from '../src/lib/storage';
 import { UserPreferences, DEFAULT_PREFERENCES } from '../src/types';
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  Button,
+  InfoBanner,
+} from '../src/ui';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -49,7 +54,9 @@ export default function WelcomeScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Animated.View entering={FadeIn.duration(300)}>
+            <Ionicons name="sparkles" size={32} color={colors.accent} />
+          </Animated.View>
         </View>
       </SafeAreaView>
     );
@@ -58,54 +65,74 @@ export default function WelcomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.header}>
+        {/* Hero Section */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(100)}
+          style={styles.hero}
+        >
+          <View style={styles.logoContainer}>
+            <Ionicons name="sparkles" size={40} color={colors.accent} />
+          </View>
           <Text style={styles.title}>SkinSafe</Text>
           <Text style={styles.subtitle}>
-            Check product ingredients against your preferences
+            Check product ingredients against your personal preferences
           </Text>
-        </View>
+        </Animated.View>
 
-        <View style={styles.disclaimer}>
-          <Text style={styles.disclaimerText}>
-            For informational purposes only. This app does not provide medical
-            advice, diagnosis, or treatment recommendations. Consult a healthcare
-            professional for skin concerns.
-          </Text>
-        </View>
+        {/* Disclaimer */}
+        <Animated.View entering={FadeInDown.duration(500).delay(200)}>
+          <InfoBanner
+            message="For informational purposes only. This app does not provide medical advice, diagnosis, or treatment recommendations. Consult a healthcare professional for skin concerns."
+            variant="muted"
+            style={styles.disclaimer}
+          />
+        </Animated.View>
 
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.primaryButton}
+        {/* Action Buttons */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(300)}
+          style={styles.actions}
+        >
+          <Button
+            title="Scan Product"
             onPress={() => router.push('/scan')}
-          >
-            <Text style={styles.primaryButtonText}>Scan Product</Text>
-          </TouchableOpacity>
+            variant="primary"
+            icon="scan-outline"
+          />
 
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => router.push('/preferences')}
-          >
-            <Text style={styles.secondaryButtonText}>
-              {hasCompletedOnboarding
+          <View style={styles.buttonSpacer} />
+
+          <Button
+            title={
+              hasCompletedOnboarding
                 ? `Edit Preferences (${activePrefsCount} active)`
-                : 'Set Your Preferences'}
-            </Text>
-          </TouchableOpacity>
+                : 'Set Your Preferences'
+            }
+            onPress={() => router.push('/preferences')}
+            variant="secondary"
+            icon="options-outline"
+          />
 
-          <TouchableOpacity
-            style={styles.secondaryButton}
+          <View style={styles.buttonSpacer} />
+
+          <Button
+            title="View Saved Products"
             onPress={() => router.push('/saved')}
-          >
-            <Text style={styles.secondaryButtonText}>View Saved Products</Text>
-          </TouchableOpacity>
-        </View>
+            variant="secondary"
+            icon="bookmark-outline"
+          />
+        </Animated.View>
 
+        {/* Hint for new users */}
         {!hasCompletedOnboarding && (
-          <View style={styles.hint}>
-            <Text style={styles.hintText}>
-              Tip: Set your preferences first for personalized results
-            </Text>
-          </View>
+          <Animated.View entering={FadeInDown.duration(500).delay(400)}>
+            <InfoBanner
+              message="Tip: Set your preferences first for personalized results"
+              variant="warning"
+              icon="bulb-outline"
+              style={styles.hint}
+            />
+          </Animated.View>
         )}
       </View>
     </SafeAreaView>
@@ -115,86 +142,53 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    fontSize: 16,
-    color: '#666',
-  },
   content: {
     flex: 1,
-    padding: 24,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
     justifyContent: 'center',
   },
-  header: {
-    marginBottom: 32,
+  hero: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
   },
   title: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#1a1a1a',
+    ...typography.headline,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
+    ...typography.body,
     textAlign: 'center',
-    lineHeight: 22,
+    color: colors.textMuted,
+    maxWidth: 300,
   },
   disclaimer: {
-    backgroundColor: '#f0f4f8',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 32,
-  },
-  disclaimerText: {
-    fontSize: 12,
-    color: '#5a6a7a',
-    textAlign: 'center',
-    lineHeight: 18,
+    marginBottom: spacing.xl,
   },
   actions: {
-    gap: 12,
+    marginBottom: spacing.lg,
   },
-  primaryButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: '#f1f5f9',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#334155',
-    fontSize: 16,
-    fontWeight: '500',
+  buttonSpacer: {
+    height: spacing.sm,
   },
   hint: {
-    marginTop: 24,
-    padding: 12,
-    backgroundColor: '#fef3c7',
-    borderRadius: 8,
-  },
-  hintText: {
-    fontSize: 14,
-    color: '#92400e',
-    textAlign: 'center',
+    marginTop: spacing.sm,
   },
 });
