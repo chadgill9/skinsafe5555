@@ -18,6 +18,9 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
+          headerShown: true,
+          gestureEnabled: true,
+          headerBackVisible: true,
           headerStyle: {
             backgroundColor: '#ffffff',
           },
@@ -42,24 +45,29 @@ export default function RootLayout() {
           options={{
             title: 'Your Preferences',
             presentation: 'modal',
+            headerShown: true,
+            gestureEnabled: true,
           }}
         />
         <Stack.Screen
           name="scan"
           options={{
             title: 'Scan Product',
+            headerShown: true,
           }}
         />
         <Stack.Screen
           name="result"
           options={{
             title: 'Results',
+            headerShown: true,
           }}
         />
         <Stack.Screen
           name="saved"
           options={{
             title: 'Saved Products',
+            headerShown: true,
           }}
         />
         <Stack.Screen
@@ -67,6 +75,8 @@ export default function RootLayout() {
           options={{
             title: 'Add Product',
             presentation: 'modal',
+            headerShown: true,
+            gestureEnabled: true,
           }}
         />
       </Stack>
