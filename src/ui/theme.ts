@@ -253,7 +253,7 @@ export const animation = {
 
 // Helper to get score color
 export function getScoreColor(score: number): string {
-  if (score >= 80) return colors.scoreGood;
-  if (score >= 50) return colors.scoreMedium;
-  return colors.scorePoor;
+  if (score >= 70) return colors.scoreGood;   // 70-100: Green ("Great fit for you")
+  if (score >= 40) return colors.scoreMedium; // 40-69: Yellow ("Some ingredients to watch")
+  return colors.scorePoor;                    // 0-39: Red ("Contains ingredients you're avoiding")
 }
