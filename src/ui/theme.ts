@@ -30,8 +30,8 @@ export const colors = {
   accentDark: '#C4006B',    // Pressed state
 
   // Text hierarchy
-  textPrimary: '#111111',   // Headlines, primary text
-  textSecondary: '#6B7280', // Body text (spec)
+  textPrimary: '#404040',   // Default text color
+  textSecondary: '#6B6B6B', // Secondary text
   textMuted: '#9CA3AF',     // Captions, hints
   textInverse: '#FFFFFF',   // On accent backgrounds
 
