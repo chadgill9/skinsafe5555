@@ -3,7 +3,7 @@
  *
  * Ulta-inspired beauty retail aesthetic:
  * - Clean white base, bold typography
- * - Warm coral/peach accent (feminine, inviting)
+ * - Hot pink accent (Ulta signature color)
  * - Generous spacing, soft cards, rounded elements
  */
 
@@ -24,15 +24,15 @@ export const colors = {
   border: '#E8E8ED',
   divider: '#F0F0F5',
 
-  // 10% - Accent (warm coral - Ulta-inspired)
-  accent: '#E85A6B',        // Primary CTA coral
-  accentLight: '#FEE8EA',   // Light coral for backgrounds
-  accentDark: '#D14456',    // Pressed state
+  // 10% - Accent (Ulta hot pink)
+  accent: '#E6007E',        // Primary CTA - Ulta pink
+  accentLight: '#FDE8F2',   // Light pink for backgrounds
+  accentDark: '#C4006B',    // Pressed state
 
   // Text hierarchy
-  textPrimary: '#1A1A1A',   // Headlines, primary text
-  textSecondary: '#404040', // Body text (spec: #404040)
-  textMuted: '#8E8E93',     // Captions, hints
+  textPrimary: '#111111',   // Headlines, primary text
+  textSecondary: '#6B7280', // Body text (spec)
+  textMuted: '#9CA3AF',     // Captions, hints
   textInverse: '#FFFFFF',   // On accent backgrounds
 
   // Semantic colors
